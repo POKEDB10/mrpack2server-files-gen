@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Minecraft Server Files Generator</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at top left, #2c3e50, #1a252f);
+      color: #ecf0f1;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 40px;
+      max-width: 1200px;
+      width: 100%;
+      justify-content: center;
+      align-items: stretch;
+    }
+
+    .container {
+      flex: 1;
+      min-width: 300px;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .info-box {
+    background-color: #273747;
+    border-left: 5px solid #00e6ac;
+    color: #ecf0f1;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    }
+
+    .info-box ol {
+    padding-left: 20px;
+    margin: 0;
+    }
+
+    .info-box li {
+    margin-bottom: 12px;
+    line-height: 1.7;
+    }
+
+
+    .info-box h2 {
+      margin-top: 0;
+      font-size: 20px;
+      color: #00e6ac;
+    }
+
+    .info-box a {
+      color: #00e6ac;
+      text-decoration: underline;
+    }
+
+    .info-box code {
+      background: #1a252f;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #ffffff;
+    }
+
+    .container {
+      background: #1e2a38;
+      animation: fadeIn 1s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #00e6ac;
+      text-align: center;
+    }
+
+    input[type="file"],
+    button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      font-size: 15px;
+    }
+
+    input[type="file"] {
+      background: #293b4a;
+      color: white;
+      border: 1px solid #555;
+    }
+
+    button {
+      background-color: #00e6ac;
+      border: none;
+      font-weight: bold;
+      color: #000;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #00c99b;
+    }
+
+    .progress-container {
+      background: #34495e;
+      height: 14px;
+      border-radius: 8px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar {
+      background: #00e6ac;
+      height: 100%;
+      width: 0%;
+      transition: width 0.2s ease-in-out;
+    }
+
+    #status {
+      margin-top: 10px;
+      font-size: 14px;
+      min-height: 20px;
+      text-align: center;
+    }
+
+    #log {
+      margin-top: 20px;
+      max-height: 250px;
+      overflow-y: auto;
+      background: #121a22;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 13px;
+      white-space: pre-wrap;
+    }
+
+    #log div {
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="info-box">
+    <h2>🧵 How to get the Quilt Installer</h2>
+    <ol>
+    <li>Visit the official Quilt server installer page.</li>
+    <li>
+        Download the latest <strong>Quilt installer JAR file</strong>:
+        <a href="https://quiltmc.org/en/install/server/" target="_blank" rel="noopener noreferrer">QuiltMC ( click me )</a>
+    </li>
+    <li>Save the <code>quilt-installer.jar</code> file to a location you can easily find.</li>
+    <li>Return to this page and select your <code>.mrpack</code> file above.</li>
+    <li>Upload the <code>quilt-installer.jar</code> file in the second field.</li>
+    <li>Click the <strong>Generate Server Files</strong> button to start the setup process.</li>
+    <li>Wait for the process to complete — progress will be shown below the button.</li>
+    <li>Once complete, your server files will download as a ZIP file.</li>
+    </ol>
+
+    </div>
+
+    <div class="container">
+      <h1>🧵 Quilt Server Setup</h1>
+      <form id="uploadForm" enctype="multipart/form-data">
+        <label>
+          <strong>.mrpack file</strong><br/>
+          <input type="file" name="mrpack" accept=".mrpack" required />
+        </label>
+        <br/><br/>
+        <label>
+          <strong>Quilt Installer (.jar)</strong><br/>
+          <input type="file" name="quilt_installer" accept=".jar" required />
+        </label>
+        <button type="submit">Generate Server Files</button>
+      </form>
+
+      <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div id="status"></div>
+      <div id="log"></div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("uploadForm");
+    const progressBar = document.getElementById("progressBar");
+    const progressContainer = document.getElementById("progressContainer");
+    const status = document.getElementById("status");
+    const log = document.getElementById("log");
+
+    function logMessage(message) {
+      const time = new Date().toLocaleTimeString();
+      const entry = document.createElement("div");
+      entry.textContent = `[${time}] ${message}`;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function startLogStream(requestId) {
+      const source = new EventSource(`/api/logs/${requestId}`);
+      source.onmessage = (event) => {
+        logMessage(event.data);
+      };
+      source.onerror = () => {
+        source.close();
+        logMessage("❌ Log stream closed.");
+      };
+    }
+
+    form.onsubmit = function (e) {
+      e.preventDefault();
+      const formData = new FormData(form);
+      const requestId = crypto.randomUUID();
+
+      const mrpackFile = form.querySelector('input[name="mrpack"]').files[0];
+      if (mrpackFile) {
+        localStorage.setItem("mrpackFileName", mrpackFile.name);
+      }
+
+      progressBar.style.width = "0%";
+      progressContainer.style.display = "block";
+      status.textContent = "";
+      log.innerHTML = "";
+      logMessage("Upload started...");
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `/api/generate?request_id=${requestId}`);
+      xhr.responseType = "blob";
+
+      xhr.upload.onprogress = function (e) {
+        if (e.lengthComputable) {
+          const percent = ((e.loaded / e.total) * 100).toFixed(1);
+          progressBar.style.width = percent + "%";
+          logMessage(`Upload progress: ${percent}%`);
+        }
+      };
+
+      xhr.onload = function () {
+        if (xhr.status === 200) {
+          const blob = xhr.response;
+
+          const disposition = xhr.getResponseHeader("Content-Disposition");
+          let filename = "server.zip";
+          if (disposition && disposition.includes("filename=")) {
+            const match = disposition.match(/filename="?(.+?)"?$/);
+            if (match) filename = match[1];
+          }
+
+          const downloadUrl = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = downloadUrl;
+          link.download = filename;
+          link.click();
+
+          status.textContent = "✅ Download started!";
+          logMessage("Server generated successfully.");
+          localStorage.removeItem("mrpackFileName");
+        } else {
+          const text = xhr.responseText;
+          try {
+            const error = JSON.parse(text);
+            status.textContent = "❌ " + (error.message || "Server error");
+            logMessage("❌ Server error: " + (error.message || "Unknown"));
+          } catch {
+            status.textContent = "❌ Unexpected server error.";
+            logMessage("❌ Unexpected response from server.");
+          }
+        }
+      };
+
+      xhr.onerror = function () {
+        status.textContent = "❌ Network error.";
+        logMessage("❌ Network error during upload.");
+      };
+
+      startLogStream(requestId);
+      xhr.send(formData);
+    };
+
+    window.onload = function () {
+      const savedFileName = localStorage.getItem("mrpackFileName");
+      if (savedFileName) {
+        logMessage(`Please re-select your .mrpack file: ${savedFileName}`);
+      }
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+    // Animate sections
+    document.querySelectorAll(".section").forEach((el, i) => {
+        setTimeout(() => el.style.opacity = "1", i * 150);
+    });
+
+    // Mobile detection
+    if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
+        const popup = document.createElement("div");
+        popup.className = "popup-overlay";
+        popup.innerHTML = `
+        <div class="popup-box">
+            ⚠️ This site is best viewed on a desktop.<br /><br />
+            Please switch to desktop mode or use a computer for the best experience.
+            <br /><br />
+            <button onclick="this.closest('.popup-overlay').remove()">OK</button>
+        </div>
+        `;
+        document.body.appendChild(popup);
+    }
+    });
+  </script>
+</body>
+</html>
