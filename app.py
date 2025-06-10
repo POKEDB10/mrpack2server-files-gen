@@ -5,11 +5,14 @@ from collections import defaultdict
 import threading
 import time
 import re
+from java_resolver import resolve_java_version, get_java_path, log_installed_java_versions
 
 app = Flask(__name__)
 
 log_buffers = defaultdict(list)
 log_locks = defaultdict(threading.Lock)
+logging.basicConfig(level=logging.INFO)
+
 
 def push_log(request_id, message):
     log_line = f"{message}"
@@ -218,13 +221,19 @@ def setup_fabric(mc_version, loader_version, server_dir, request_id):
         installer_meta = requests.get(meta_url, timeout=15).json()[0]
         download_to_file(installer_meta['url'], installer_path, request_id)
 
+    java_version = resolve_java_version("fabric", mc_version)
+    java_path = get_java_path(java_version)
+    push_log(request_id, f"🧩 Using Java {java_version} for Fabric {mc_version}")
+
     subprocess.run([
-        "java", "-jar", installer_path,
+        java_path, "-jar", installer_path,
         "server", "-downloadMinecraft",
         "-mcversion", mc_version,
         "-loader", loader_version,
         "-dir", server_dir
     ], check=True)
+    push_log(request_id, f"Running Fabric installer with Java {java_path}")
+    push_log(request_id, "Running Fabric installer...")
     push_log(request_id, "Fabric server setup complete")
     os.remove(installer_path)
     push_log(request_id, f"Deleted Fabric installer: {installer_path}")
@@ -237,7 +246,13 @@ def setup_forge(mc_version, loader_version, server_dir, request_id):
     if not os.path.exists(installer_path):
         download_to_file(url, installer_path, request_id)
 
-    subprocess.run(["java", "-jar", installer_path, "--installServer"], cwd=server_dir, check=True)
+    java_version = resolve_java_version("forge", mc_version)
+    java_path = get_java_path(java_version)
+    push_log(request_id, f"🧩 Using Java {java_version} for Forge {mc_version}")
+
+    subprocess.run([java_path, "-jar", installer_path, "--installServer"], cwd=server_dir, check=True)
+    push_log(request_id, f"Running Forge installer with Java {java_path}")
+    push_log(request_id, "Running Forge installer...")
     push_log(request_id, "Forge server setup complete")
     os.remove(installer_path)
     push_log(request_id, f"Deleted Forge installer: {installer_path}")
@@ -266,8 +281,12 @@ def setup_neoforge(mc_version, loader_version, server_dir, request_id):
     download_to_file(installer_url, installer_path, request_id)
 
     push_log(request_id, f"Running NeoForge installer...")
+    java_version = resolve_java_version("neoforge", mc_version)
+    java_path = get_java_path(java_version)
+    push_log(request_id, f"🧩 Using Java {java_version} for NeoForge {mc_version}")
+
     result = subprocess.run(
-        ["java", "-jar", installer_path, "--installServer"],
+        [java_path, "-jar", installer_path, "--installServer"],
         cwd=server_dir,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -275,7 +294,8 @@ def setup_neoforge(mc_version, loader_version, server_dir, request_id):
     )
     push_log(request_id, result.stdout)
     result.check_returncode()
-
+    push_log(request_id, f"Running NeoForge installer with Java {java_path}")
+    push_log(request_id, "NeoForge installer completed successfully")
     push_log(request_id, "NeoForge server setup complete")
     os.remove(installer_path)
     push_log(request_id, f"Deleted NeoForge installer: {installer_path}")
@@ -286,14 +306,21 @@ def setup_quilt(mc_version, loader_version, server_dir, request_id, installer_fi
     installer_file.save(installer_path)
     push_log(request_id, f"Received Quilt installer: {installer_file.filename}")
 
+ 
+    java_version = resolve_java_version("quilt", mc_version)
+    java_path = get_java_path(java_version)
+    push_log(request_id, f"🧩 Using Java {java_version} for Quilt {mc_version}")
+
     result = subprocess.run([
-        "java", "-jar", installer_path,
+        java_path, "-jar", installer_path,
         "install", "server",
         "-minecraft", mc_version,
         "-loader", loader_version,
         "--install-dir", server_dir
     ], cwd=server_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-
+    push_log(request_id, f"Running Quilt installer with Java {java_path}")
+    push_log(request_id, "Running Quilt installer...")
+    push_log(request_id, "Quilt server setup complete")
     push_log(request_id, result.stdout)
     result.check_returncode()
     os.remove(installer_path)
@@ -306,12 +333,24 @@ def setup_vanilla(mc_version, server_dir, request_id):
     version_info = next((v for v in manifest["versions"] if v["id"] == mc_version), None)
     if not version_info:
         raise Exception("MC version not found")
+
     version_data = requests.get(version_info["url"], timeout=10).json()
     jar_url = version_data["downloads"]["server"]["url"]
-    download_to_file(jar_url, os.path.join(server_dir, "server.jar"), request_id)
+
+    server_jar = os.path.join(server_dir, "server.jar")
+    download_to_file(jar_url, server_jar, request_id)
+
+    java_version = resolve_java_version("vanilla", mc_version)
+    java_path = get_java_path(java_version)
+    push_log(request_id, f"🧩 Using Java {java_version} for Vanilla {mc_version}")
+
     push_log(request_id, "Minecraft server setup completed")
 
 
 if __name__ == '__main__':
+    try:
+        subprocess.run(["java", "-version"], check=True)
+    except Exception as e:
+        logging.warning("Default Java not available or not installed.")
     logging.info("Running in development mode. Use Gunicorn or uWSGI for production.")
     app.run(debug=False, port=8080)
