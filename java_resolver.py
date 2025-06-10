@@ -6,7 +6,7 @@ from java_versions import JAVA_VERSION_MAP  # Your full map from the previous me
 FALLBACK_JAVA_VERSIONS = ["21", "17", "16", "11", "8"]
 
 def get_java_path(version):
-    return f"/tmp/java-{version}/bin/java"
+    return f"/opt/java-{version}/bin/java"
 
 def is_java_installed(version):
     return os.path.exists(get_java_path(version))
@@ -39,4 +39,4 @@ def resolve_java_version(loader_type, mc_version):
             print(f"ℹ️ Falling back to Java {version}")
             return version
 
-    raise RuntimeError("❌ No supported Java version found in /tmp.")
+    raise RuntimeError("❌ No supported Java version found in /opt.")
