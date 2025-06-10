@@ -149,6 +149,7 @@ def generate_server():
             base_name = os.path.splitext(mrpack_file.filename)[0]
             zip_name = f"{safe_name}-MSFG.zip"
             push_log(request_id, f"Preparing download: {zip_name}")
+            push_log(request_id, f"✅ Zip buffer created with size: {zip_buffer.getbuffer().nbytes / 1024:.2f} KB")
             return send_file(zip_buffer, as_attachment=True, download_name=zip_name, mimetype="application/zip")
 
 
