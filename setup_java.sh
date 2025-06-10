@@ -32,4 +32,4 @@ export JAVA_HOME="$JAVA_BASE/java-17"
 export PATH="$JAVA_HOME/bin:$PATH"
 
 # Start Flask app via Gunicorn
-exec gunicorn app:app --bind 0.0.0.0:$PORT
+exec gunicorn app:app 
