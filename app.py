@@ -3,11 +3,48 @@ import zipfile, requests, shutil, json, os, tempfile, subprocess, logging, uuid
 from io import BytesIO
 from collections import defaultdict
 import threading
+from concurrent.futures import ThreadPoolExecutor
 import time
 import re
 from java_resolver import resolve_java_version, get_java_path, log_installed_java_versions
 
 app = Flask(__name__)
+
+download_executor = ThreadPoolExecutor(max_workers=32)
+copy_executor = ThreadPoolExecutor(max_workers=16)
+
+def parallel_download_and_copy(index_data, extract_path, server_dir, request_id):
+    mods = index_data["files"]
+    overrides_dir = os.path.join(extract_path, "overrides")
+
+    def download_mod(mod):
+        url = mod['downloads'][0]
+        filename = mod.get('fileName') or os.path.basename(url)
+        dest_path = os.path.join(server_dir, "mods", filename)
+        download_to_file(url, dest_path, request_id)
+
+    def copy_override(src_file, dst_file):
+        shutil.copy2(src_file, dst_file)
+        push_log(request_id, f"Copied override: {os.path.basename(dst_file)}")
+
+    # Submit mod downloads
+    mod_futures = [download_executor.submit(download_mod, mod) for mod in mods]
+
+    # Submit override copies
+    copy_futures = []
+    if os.path.exists(overrides_dir):
+        for root, _, files in os.walk(overrides_dir):
+            rel_path = os.path.relpath(root, overrides_dir)
+            dest_dir = os.path.join(server_dir, rel_path)
+            os.makedirs(dest_dir, exist_ok=True)
+            for file in files:
+                src_file = os.path.join(root, file)
+                dst_file = os.path.join(dest_dir, file)
+                copy_futures.append(copy_executor.submit(copy_override, src_file, dst_file))
+
+    # Wait for all tasks
+    for f in mod_futures + copy_futures:
+        f.result()
 
 log_buffers = defaultdict(list)
 log_locks = defaultdict(threading.Lock)
@@ -81,18 +118,9 @@ def generate_server():
             os.makedirs(os.path.join(server_dir, "mods"), exist_ok=True)
 
 
-            # Download mods
-            for mod in index_data["files"]:
-                url = mod['downloads'][0]
-                filename = mod.get('fileName')
-                if not filename:
-                    filename = os.path.basename(url)
-                download_to_file(url, os.path.join(server_dir, "mods", filename), request_id)
-
-            # Copy overrides
-            overrides_dir = os.path.join(extract_path, "overrides")
-            if os.path.exists(overrides_dir):
-                copy_overrides(overrides_dir, server_dir, request_id)
+            # Download mods and copy overrides in parallel
+            parallel_download_and_copy(index_data, extract_path, server_dir, request_id)
+            push_log(request_id, "Downloaded mods and copied overrides successfully")
 
             # Install server
             if loader_type == 'quilt':

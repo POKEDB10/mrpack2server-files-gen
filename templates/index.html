@@ -132,70 +132,92 @@
     <button onclick="document.getElementById('quiltPopup').style.display='none'" style="margin-top:10px;">Close</button>
     </div>
 
-    <script>
-        const form = document.getElementById("uploadForm");
-        const progressBar = document.getElementById("progressBar");
-        const progressContainer = document.getElementById("progressContainer");
-        const status = document.getElementById("status");
-        const log = document.getElementById("log");
+<script>
+const form = document.getElementById("uploadForm");
+const progressBar = document.getElementById("progressBar");
+const progressContainer = document.getElementById("progressContainer");
+const status = document.getElementById("status");
+const log = document.getElementById("log");
 
-        function logMessage(message) {
-        const time = new Date().toLocaleTimeString();
-        const entry = document.createElement("div");
-        entry.textContent = `[${time}] ${message}`;
-        log.appendChild(entry);
-        log.scrollTop = log.scrollHeight;
-        }
+let logStream = null;
 
-        function startLogStream(requestId) {
-        const source = new EventSource(`/api/logs/${requestId}`);
-        source.onmessage = (event) => {
-            logMessage(event.data);
-        };
-        source.onerror = () => {
-            source.close();
-            logMessage("❌ Log stream closed.");
-        };
-        }
+function logMessage(message) {
+    const time = new Date().toLocaleTimeString();
+    const entry = document.createElement("div");
+    entry.textContent = `[${time}] ${message}`;
+    log.appendChild(entry);
+    log.scrollTop = log.scrollHeight;
+}
 
-        form.onsubmit = function (e) {
-        e.preventDefault();
-        const formData = new FormData(form);
-        const requestId = crypto.randomUUID();
+function startLogStream(requestId) {
+    if (logStream) {
+        logStream.close();
+    }
+    logStream = new EventSource(`/api/logs/${requestId}`);
+    logStream.onmessage = (event) => {
+        logMessage(event.data);
+    };
+    logStream.onerror = () => {
+        logMessage("❌ Log stream closed.");
+        logStream.close();
+        logStream = null;
+    };
+}
 
-        progressBar.style.width = "0%";
-        progressContainer.style.display = "block";
-        status.textContent = "";
-        log.innerHTML = "";
-        logMessage("Upload started...");
+function stopLogStream() {
+    if (logStream) {
+        logStream.close();
+        logStream = null;
+    }
+}
 
-        // Step 1: check loader type
-        fetch("/api/check_loader", {
-            method: "POST",
-            body: formData
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.loader === "quilt") {
+function copyLogs() {
+    const lines = Array.from(log.children).map(div => div.textContent).join("\n");
+    navigator.clipboard.writeText(lines).then(() => {
+        logMessage("📋 Logs copied to clipboard.");
+    });
+}
+
+form.onsubmit = function (e) {
+    e.preventDefault();
+    const formData = new FormData(form);
+    const requestId = crypto.randomUUID();  // ✅ Only create once
+
+    progressBar.style.width = "0%";
+    progressContainer.style.display = "block";
+    status.textContent = "";
+    log.innerHTML = "";
+    logMessage("Upload started...");
+
+    fetch("/api/check_loader", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.loader === "quilt") {
             localStorage.setItem("mrpackFileName", formData.get("mrpack").name);
             window.location.href = "/quilt";
             return;
-            }
+        }
 
-            // Step 2: continue with actual generation
-            const xhr = new XMLHttpRequest();
-            xhr.open("POST", `/api/generate?request_id=${requestId}`);
-            xhr.responseType = "blob";
+        startLogStream(requestId);  // ✅ start log stream right before request starts
 
-            xhr.upload.onprogress = function (e) {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `/api/generate?request_id=${requestId}`);
+        xhr.responseType = "blob";
+
+        xhr.upload.onprogress = function (e) {
             if (e.lengthComputable) {
                 const percent = ((e.loaded / e.total) * 100).toFixed(1);
                 progressBar.style.width = percent + "%";
                 logMessage(`Upload progress: ${percent}%`);
             }
-            };
+        };
 
-            xhr.onload = function () {
+        xhr.onload = function () {
+            stopLogStream();  // ✅ stop the log stream after request completes
+
             if (xhr.status === 200) {
                 const blob = xhr.response;
                 const downloadUrl = URL.createObjectURL(blob);
@@ -208,32 +230,59 @@
             } else {
                 const text = xhr.responseText;
                 try {
-                const error = JSON.parse(text);
-                status.textContent = "❌ " + (error.message || "Server error");
-                logMessage("❌ Server error: " + (error.message || "Unknown"));
-
-                if (error.popup === "quilt_installer_required") {
-                    const popup = document.getElementById('quiltPopup');
-                    popup.style.display = 'block';
-                    popup.scrollIntoView({ behavior: 'smooth' });
-                }
+                    const error = JSON.parse(text);
+                    status.textContent = "❌ " + (error.message || "Server error");
+                    logMessage("❌ Server error: " + (error.message || "Unknown"));
+                    if (error.popup === "quilt_installer_required") {
+                        document.getElementById('quiltPopup').style.display = 'block';
+                    }
                 } catch {
-                status.textContent = "❌ Unexpected server error.";
-                logMessage("❌ Unexpected response from server.");
+                    status.textContent = "❌ Unexpected server error.";
+                    logMessage("❌ Unexpected response from server.");
                 }
             }
-            };
-
-            xhr.onerror = function () {
-            status.textContent = "❌ Network error.";
-            logMessage("❌ Network error during upload.");
-            };
-
-            startLogStream(requestId);
-            xhr.send(formData);
-        });
         };
 
-    </script>
+        xhr.onerror = function () {
+            stopLogStream();  // ✅ ensure cleanup on failure
+            status.textContent = "❌ Network error.";
+            logMessage("❌ Network error during upload.");
+        };
+
+        xhr.send(formData);
+    });
+};
+
+  document.addEventListener("DOMContentLoaded", () => {
+    // Animate sections
+    document.querySelectorAll(".section").forEach((el, i) => {
+      setTimeout(() => el.style.opacity = "1", i * 150);
+    });
+
+    // Mobile warning
+    if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
+      const popup = document.createElement("div");
+      popup.className = "popup-overlay";
+      popup.innerHTML = `
+        <div class="popup-box">
+            ⚠️ This site is best viewed on a desktop.<br /><br />
+            Please switch to desktop mode or use a computer for the best experience.
+            <br /><br />
+            <button onclick="this.closest('.popup-overlay').remove()">OK</button>
+        </div>
+      `;
+      document.body.appendChild(popup);
+    }
+
+    // Add "Copy Logs" button
+    const copyBtn = document.createElement("button");
+    copyBtn.textContent = "📋 Copy Logs";
+    copyBtn.style.marginTop = "10px";
+    copyBtn.onclick = copyLogs;
+    document.querySelector(".container")?.appendChild(copyBtn);
+  });
+
+</script>
+
     </body>
     </html>

@@ -214,130 +214,160 @@
     </div>
   </div>
 
-  <script>
-    const form = document.getElementById("uploadForm");
-    const progressBar = document.getElementById("progressBar");
-    const progressContainer = document.getElementById("progressContainer");
-    const status = document.getElementById("status");
-    const log = document.getElementById("log");
+<script>
+  const form = document.getElementById("uploadForm");
+  const progressBar = document.getElementById("progressBar");
+  const progressContainer = document.getElementById("progressContainer");
+  const status = document.getElementById("status");
+  const log = document.getElementById("log");
 
-    function logMessage(message) {
-      const time = new Date().toLocaleTimeString();
-      const entry = document.createElement("div");
-      entry.textContent = `[${time}] ${message}`;
-      log.appendChild(entry);
-      log.scrollTop = log.scrollHeight;
+  let logStream = null;
+
+  function logMessage(message) {
+    const time = new Date().toLocaleTimeString();
+    const entry = document.createElement("div");
+    entry.textContent = `[${time}] ${message}`;
+    log.appendChild(entry);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function startLogStream(requestId) {
+    if (logStream) {
+      logStream.close();
     }
-
-    function startLogStream(requestId) {
-      const source = new EventSource(`/api/logs/${requestId}`);
-      source.onmessage = (event) => {
-        logMessage(event.data);
-      };
-      source.onerror = () => {
-        source.close();
-        logMessage("❌ Log stream closed.");
-      };
-    }
-
-    form.onsubmit = function (e) {
-      e.preventDefault();
-      const formData = new FormData(form);
-      const requestId = crypto.randomUUID();
-
-      const mrpackFile = form.querySelector('input[name="mrpack"]').files[0];
-      if (mrpackFile) {
-        localStorage.setItem("mrpackFileName", mrpackFile.name);
-      }
-
-      progressBar.style.width = "0%";
-      progressContainer.style.display = "block";
-      status.textContent = "";
-      log.innerHTML = "";
-      logMessage("Upload started...");
-
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", `/api/generate?request_id=${requestId}`);
-      xhr.responseType = "blob";
-
-      xhr.upload.onprogress = function (e) {
-        if (e.lengthComputable) {
-          const percent = ((e.loaded / e.total) * 100).toFixed(1);
-          progressBar.style.width = percent + "%";
-          logMessage(`Upload progress: ${percent}%`);
-        }
-      };
-
-      xhr.onload = function () {
-        if (xhr.status === 200) {
-          const blob = xhr.response;
-
-          const disposition = xhr.getResponseHeader("Content-Disposition");
-          let filename = "server.zip";
-          if (disposition && disposition.includes("filename=")) {
-            const match = disposition.match(/filename="?(.+?)"?$/);
-            if (match) filename = match[1];
-          }
-
-          const downloadUrl = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = downloadUrl;
-          link.download = filename;
-          link.click();
-
-          status.textContent = "✅ Download started!";
-          logMessage("Server generated successfully.");
-          localStorage.removeItem("mrpackFileName");
-        } else {
-          const text = xhr.responseText;
-          try {
-            const error = JSON.parse(text);
-            status.textContent = "❌ " + (error.message || "Server error");
-            logMessage("❌ Server error: " + (error.message || "Unknown"));
-          } catch {
-            status.textContent = "❌ Unexpected server error.";
-            logMessage("❌ Unexpected response from server.");
-          }
-        }
-      };
-
-      xhr.onerror = function () {
-        status.textContent = "❌ Network error.";
-        logMessage("❌ Network error during upload.");
-      };
-
-      startLogStream(requestId);
-      xhr.send(formData);
+    logStream = new EventSource(`/api/logs/${requestId}`);
+    logStream.onmessage = (event) => {
+      logMessage(event.data);
     };
+    logStream.onerror = () => {
+      logMessage("❌ Log stream closed.");
+      stopLogStream();
+    };
+  }
 
-    window.onload = function () {
-      const savedFileName = localStorage.getItem("mrpackFileName");
-      if (savedFileName) {
-        logMessage(`Please re-select your .mrpack file: ${savedFileName}`);
+  function stopLogStream() {
+    if (logStream) {
+      logStream.close();
+      logStream = null;
+    }
+  }
+
+  function copyLogs() {
+    const lines = Array.from(log.children).map(div => div.textContent).join("\n");
+    navigator.clipboard.writeText(lines).then(() => {
+      logMessage("📋 Logs copied to clipboard.");
+    });
+  }
+
+  form.onsubmit = function (e) {
+    e.preventDefault();
+    const formData = new FormData(form);
+    const requestId = crypto.randomUUID();
+
+    const mrpackFile = form.querySelector('input[name="mrpack"]').files[0];
+    if (mrpackFile) {
+      localStorage.setItem("mrpackFileName", mrpackFile.name);
+    }
+
+    progressBar.style.width = "0%";
+    progressContainer.style.display = "block";
+    status.textContent = "";
+    log.innerHTML = "";
+    logMessage("Upload started...");
+
+    startLogStream(requestId); // Start log streaming
+
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `/api/generate?request_id=${requestId}`);
+    xhr.responseType = "blob";
+
+    xhr.upload.onprogress = function (e) {
+      if (e.lengthComputable) {
+        const percent = ((e.loaded / e.total) * 100).toFixed(1);
+        progressBar.style.width = percent + "%";
+        logMessage(`Upload progress: ${percent}%`);
       }
     };
 
-    document.addEventListener("DOMContentLoaded", () => {
+    xhr.onload = function () {
+      stopLogStream(); // Close log stream
+
+      if (xhr.status === 200) {
+        const blob = xhr.response;
+
+        const disposition = xhr.getResponseHeader("Content-Disposition");
+        let filename = "server.zip";
+        if (disposition && disposition.includes("filename=")) {
+          const match = disposition.match(/filename="?(.+?)"?$/);
+          if (match) filename = match[1];
+        }
+
+        const downloadUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = filename;
+        link.click();
+
+        status.textContent = "✅ Download started!";
+        logMessage("Server generated successfully.");
+        localStorage.removeItem("mrpackFileName");
+      } else {
+        const text = xhr.responseText;
+        try {
+          const error = JSON.parse(text);
+          status.textContent = "❌ " + (error.message || "Server error");
+          logMessage("❌ Server error: " + (error.message || "Unknown"));
+        } catch {
+          status.textContent = "❌ Unexpected server error.";
+          logMessage("❌ Unexpected response from server.");
+        }
+      }
+    };
+
+    xhr.onerror = function () {
+      stopLogStream();
+      status.textContent = "❌ Network error.";
+      logMessage("❌ Network error during upload.");
+    };
+
+    xhr.send(formData);
+  };
+
+  window.onload = function () {
+    const savedFileName = localStorage.getItem("mrpackFileName");
+    if (savedFileName) {
+      logMessage(`Please re-select your .mrpack file: ${savedFileName}`);
+    }
+  };
+
+  document.addEventListener("DOMContentLoaded", () => {
     // Animate sections
     document.querySelectorAll(".section").forEach((el, i) => {
-        setTimeout(() => el.style.opacity = "1", i * 150);
+      setTimeout(() => el.style.opacity = "1", i * 150);
     });
 
-    // Mobile detection
+    // Mobile warning
     if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
-        const popup = document.createElement("div");
-        popup.className = "popup-overlay";
-        popup.innerHTML = `
+      const popup = document.createElement("div");
+      popup.className = "popup-overlay";
+      popup.innerHTML = `
         <div class="popup-box">
             ⚠️ This site is best viewed on a desktop.<br /><br />
             Please switch to desktop mode or use a computer for the best experience.
             <br /><br />
             <button onclick="this.closest('.popup-overlay').remove()">OK</button>
         </div>
-        `;
-        document.body.appendChild(popup);
+      `;
+      document.body.appendChild(popup);
     }
-    });
-  </script>
+
+    // Add "Copy Logs" button
+    const copyBtn = document.createElement("button");
+    copyBtn.textContent = "📋 Copy Logs";
+    copyBtn.style.marginTop = "10px";
+    copyBtn.onclick = copyLogs;
+    document.querySelector(".container")?.appendChild(copyBtn);
+  });
+</script>
 </body>
 </html>
