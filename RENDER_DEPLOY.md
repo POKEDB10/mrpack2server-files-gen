@@ -63,7 +63,7 @@ git push -u origin main
 3. Connect your GitHub account if you haven't already
 4. Select your repository: `mrpack2server-files-gen`
 5. Configure the service:
-   - **Name**: `mrpack2server-files-gen` (or any name you prefer)
+   - **Name**: `M2SFG` (Minecraft Server File Generator)
    - **Region**: Choose the closest region (Oregon recommended)
    - **Branch**: `main`
    - **Root Directory**: Leave empty (root)
@@ -103,7 +103,7 @@ This disk will persist data across deployments and restarts.
 1. Click "Create Web Service"
 2. Render will start building and deploying your application
 3. Wait for the build to complete (usually 5-10 minutes)
-4. Your app will be available at: `https://your-service-name.onrender.com`
+4. Your app will be available at: `https://m2sfg.onrender.com`
 
 ## Important Notes for Free Plan
 
@@ -123,9 +123,9 @@ This disk will persist data across deployments and restarts.
 ## Step 6: Access Your Application
 
 Once deployed:
-- Main app: `https://your-service-name.onrender.com`
-- Admin dashboard: `https://your-service-name.onrender.com/admin/dashboard`
-- Health check: `https://your-service-name.onrender.com/health`
+- Main app: `https://m2sfg.onrender.com`
+- Admin dashboard: `https://m2sfg.onrender.com/admin/dashboard`
+- Health check: `https://m2sfg.onrender.com/health`
 
 ## Troubleshooting
 
