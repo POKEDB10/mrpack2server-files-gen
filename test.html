@@ -1,0 +1,50 @@
+<!-- templates/logs.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Application Logs</title>
+    <style>
+        body { font-family: monospace; background: #1e1e1e; color: #fff; margin: 20px; }
+        .log-line { padding: 2px 5px; border-bottom: 1px solid #333; }
+        .log-line:hover { background: #2a2a2a; }
+        .error { color: #ff6b6b; }
+        .warning { color: #ffa500; }
+        .info { color: #4dabf7; }
+        .pagination { margin: 20px 0; }
+        .pagination a { color: #4dabf7; margin: 0 10px; text-decoration: none; }
+        .pagination a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <h1>Application Logs</h1>
+    <div class="pagination">
+        {% if page > 1 %}
+            <a href="?page={{ page - 1 }}">← Previous</a>
+        {% endif %}
+        
+        Page {{ page }} of {{ total_pages }} ({{ total_lines }} total lines)
+        
+        {% if page < total_pages %}
+            <a href="?page={{ page + 1 }}">Next →</a>
+        {% endif %}
+    </div>
+    
+    {% for line in lines %}
+        <div class="log-line {% if 'ERROR' in line %}error{% elif 'WARNING' in line %}warning{% elif 'INFO' in line %}info{% endif %}">
+            {{ line|safe }}
+        </div>
+    {% endfor %}
+    
+    <div class="pagination">
+        {% if page > 1 %}
+            <a href="?page={{ page - 1 }}">← Previous</a>
+        {% endif %}
+        
+        Page {{ page }} of {{ total_pages }}
+        
+        {% if page < total_pages %}
+            <a href="?page={{ page + 1 }}">Next →</a>
+        {% endif %}
+    </div>
+</body>
+</html>

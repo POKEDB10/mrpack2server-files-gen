@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Server Monitor - Admin Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 0;
+      line-height: 1.6;
+    }
+
+    .navbar {
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    }
+
+    .nav-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00e6ac 0%, #00d4ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .nav-link {
+      color: #cbd5e1;
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: all 0.2s;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+
+    .nav-link:hover {
+      background: rgba(148, 163, 184, 0.1);
+      color: #e2e8f0;
+    }
+
+    .nav-link.active {
+      background: linear-gradient(135deg, #00e6ac 0%, #00d4ff 100%);
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .page-header {
+      margin-bottom: 2rem;
+    }
+
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00e6ac 0%, #00d4ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+
+    .page-subtitle {
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: rgba(30, 41, 59, 0.6);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      border-radius: 16px;
+      padding: 1.5rem;
+      transition: all 0.3s;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+      border-color: rgba(0, 230, 172, 0.3);
+    }
+
+    .stat-card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    }
+
+    .stat-card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      background: linear-gradient(135deg, rgba(0, 230, 172, 0.2) 0%, rgba(0, 212, 255, 0.2) 100%);
+    }
+
+    .stat-card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #e2e8f0;
+    }
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.05);
+    }
+
+    .stat-item:last-child {
+      border-bottom: none;
+    }
+
+    .stat-label {
+      color: #94a3b8;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .stat-value {
+      color: #e2e8f0;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .stat-value.highlight {
+      color: #00e6ac;
+      font-size: 1rem;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(148, 163, 184, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00e6ac 0%, #00d4ff 100%);
+      border-radius: 4px;
+      transition: width 0.3s;
+    }
+
+    .charts-section {
+      margin-top: 2rem;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .chart-card {
+      background: rgba(30, 41, 59, 0.6);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(148, 163, 184, 0.1);
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    }
+
+    .chart-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+    }
+
+    .footer {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(148, 163, 184, 0.1);
+      text-align: center;
+      color: #64748b;
+      font-size: 0.875rem;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-content {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .nav-links {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-content">
+      <div class="nav-title">Admin Panel</div>
+      <div class="nav-links">
+        <a href="/admin/dashboard" class="nav-link active">Dashboard</a>
+        <a href="/admin/logs/view" class="nav-link">Access Logs</a>
+        <a href="/admin/users" class="nav-link">User Management</a>
+        <a href="/admin/logout" class="nav-link">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1 class="page-title">Server Monitor Dashboard</h1>
+      <p class="page-subtitle">Real-time system statistics and performance metrics</p>
+    </div>
+
+    <div class="stats-grid">
+      <!-- CPU Stats -->
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <div class="stat-card-icon">⚡</div>
+          <div class="stat-card-title">CPU Information</div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Usage</span>
+          <span class="stat-value highlight" id="cpu">-</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="cpu-progress" style="width: 0%"></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Logical Cores</span>
+          <span class="stat-value" id="cpu-count">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Physical Cores</span>
+          <span class="stat-value" id="cpu-count-physical">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Frequency</span>
+          <span class="stat-value" id="cpu-freq">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Range</span>
+          <span class="stat-value" id="cpu-min-max" style="font-size: 0.85rem;">-</span>
+        </div>
+      </div>
+
+      <!-- RAM Stats -->
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <div class="stat-card-icon">💾</div>
+          <div class="stat-card-title">Memory (RAM)</div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Usage</span>
+          <span class="stat-value highlight" id="ram">-</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="ram-progress" style="width: 0%"></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Used</span>
+          <span class="stat-value" id="ram-used">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Available</span>
+          <span class="stat-value" id="ram-available">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Free</span>
+          <span class="stat-value" id="ram-free">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Total</span>
+          <span class="stat-value" id="ram-total">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Range</span>
+          <span class="stat-value" id="ram-min-max" style="font-size: 0.85rem;">-</span>
+        </div>
+      </div>
+
+      <!-- Swap Stats -->
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <div class="stat-card-icon">🔄</div>
+          <div class="stat-card-title">Swap Memory</div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Usage</span>
+          <span class="stat-value highlight" id="swap">-</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="swap-progress" style="width: 0%"></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Used</span>
+          <span class="stat-value" id="swap-used">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Total</span>
+          <span class="stat-value" id="swap-total">-</span>
+        </div>
+      </div>
+
+      <!-- Disk Stats -->
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <div class="stat-card-icon">📀</div>
+          <div class="stat-card-title">Disk Storage</div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Usage</span>
+          <span class="stat-value highlight" id="disk">-</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="disk-progress" style="width: 0%"></div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Used</span>
+          <span class="stat-value" id="disk-used">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Free</span>
+          <span class="stat-value" id="disk-free">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Total</span>
+          <span class="stat-value" id="disk-total">-</span>
+        </div>
+      </div>
+
+      <!-- Network Stats -->
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <div class="stat-card-icon">🌐</div>
+          <div class="stat-card-title">Network</div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Data Sent</span>
+          <span class="stat-value" id="net-sent">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Data Received</span>
+          <span class="stat-value" id="net-recv">-</span>
+        </div>
+      </div>
+
+      <!-- System Stats -->
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <div class="stat-card-icon">⚙️</div>
+          <div class="stat-card-title">System Information</div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Platform</span>
+          <span class="stat-value" id="platform">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Release</span>
+          <span class="stat-value" id="platform-release">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Processor</span>
+          <span class="stat-value" id="processor" style="font-size: 0.85rem; text-align: right;">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Processes</span>
+          <span class="stat-value" id="process-count">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Uptime</span>
+          <span class="stat-value" id="uptime">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Boot Time</span>
+          <span class="stat-value" id="boot-time" style="font-size: 0.85rem; text-align: right;">-</span>
+        </div>
+      </div>
+
+      <!-- Application Stats -->
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <div class="stat-card-icon">📊</div>
+          <div class="stat-card-title">Application Stats</div>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Active Users</span>
+          <span class="stat-value highlight" id="users">-</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Generated Servers</span>
+          <span class="stat-value highlight" id="generated">-</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-section">
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">CPU Usage Over Time</div>
+          <div class="chart-container">
+            <canvas id="cpuChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">RAM Usage Over Time</div>
+          <div class="chart-container">
+            <canvas id="ramChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Disk Usage Over Time</div>
+          <div class="chart-container">
+            <canvas id="diskChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      MSFG Admin Panel &copy; 2024
+    </div>
+  </div>
+
+  <script>
+    const maxPoints = 60;
+    let peak = { cpu: 0, ram: 0, disk: 0, ram_gb: 0 };
+    let min = { cpu: 100, ram: 100, disk: 100, ram_gb: Infinity };
+
+    const chartOptions = {
+      animation: false,
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          labels: {
+            color: '#94a3b8',
+            font: {
+              size: 12
+            }
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          titleColor: '#e2e8f0',
+          bodyColor: '#e2e8f0',
+          borderColor: 'rgba(0, 230, 172, 0.3)',
+          borderWidth: 1,
+          padding: 12
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: '#94a3b8',
+            maxRotation: 45,
+            minRotation: 45
+          },
+          grid: {
+            color: 'rgba(148, 163, 184, 0.1)'
+          }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: '#94a3b8'
+          },
+          grid: {
+            color: 'rgba(148, 163, 184, 0.1)'
+          }
+        }
+      }
+    };
+
+    const createChart = (ctx, label, color, gradientColors) => {
+      const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 300);
+      gradient.addColorStop(0, gradientColors[0]);
+      gradient.addColorStop(1, gradientColors[1]);
+
+      return new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label,
+            data: [],
+            borderColor: color,
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.4,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 4
+          }]
+        },
+        options: chartOptions
+      });
+    };
+
+    const cpuChart = createChart(
+      document.getElementById("cpuChart"),
+      "CPU %",
+      "#ef4444",
+      ["rgba(239, 68, 68, 0.2)", "rgba(239, 68, 68, 0.05)"]
+    );
+    const ramChart = createChart(
+      document.getElementById("ramChart"),
+      "RAM Used (GB)",
+      "#3b82f6",
+      ["rgba(59, 130, 246, 0.2)", "rgba(59, 130, 246, 0.05)"]
+    );
+    const diskChart = createChart(
+      document.getElementById("diskChart"),
+      "Disk Used (GB)",
+      "#00e6ac",
+      ["rgba(0, 230, 172, 0.2)", "rgba(0, 230, 172, 0.05)"]
+    );
+
+    const socket = io("/admin", {
+      transports: ["websocket"],
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("Connection error:", err.message);
+      document.body.innerHTML = "<div style='display: flex; align-items: center; justify-content: center; min-height: 100vh; background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);'><h1 style='color: #ef4444; text-align: center; font-family: system-ui;'>Failed to connect to server. Please try again later.</h1></div>";
+    });
+
+    socket.on("connect", () => {
+      console.log("Connected to server via WebSocket");
+    });
+
+    socket.on("stats", (d) => {
+      const now = new Date().toLocaleTimeString();
+
+      // Track peaks and mins
+      peak.cpu = Math.max(peak.cpu, d.cpu);
+      min.cpu = Math.min(min.cpu, d.cpu);
+      peak.ram = Math.max(peak.ram, d.ram_used);
+      min.ram = Math.min(min.ram, d.ram_used);
+      peak.ram_gb = Math.max(peak.ram_gb, d.ram_used);
+      min.ram_gb = Math.min(min.ram_gb, d.ram_used);
+      peak.disk = Math.max(peak.disk, d.disk_used);
+      min.disk = Math.min(min.disk, d.disk_used);
+
+      // CPU Stats
+      document.getElementById("cpu").innerText = `${d.cpu.toFixed(1)}%`;
+      document.getElementById("cpu-progress").style.width = `${d.cpu}%`;
+      document.getElementById("cpu-count").innerText = d.cpu_count || "-";
+      document.getElementById("cpu-count-physical").innerText = d.cpu_count_physical || "-";
+      document.getElementById("cpu-freq").innerText = d.cpu_freq ? `${d.cpu_freq} MHz` : "-";
+      document.getElementById("cpu-min-max").innerText = `${min.cpu.toFixed(1)}% / ${peak.cpu.toFixed(1)}%`;
+
+      // RAM Stats
+      document.getElementById("ram").innerText = `${d.ram_percent}%`;
+      document.getElementById("ram-progress").style.width = `${d.ram_percent}%`;
+      document.getElementById("ram-used").innerText = `${d.ram_used} GB`;
+      document.getElementById("ram-available").innerText = `${d.ram_available || (d.ram_total - d.ram_used).toFixed(2)} GB`;
+      document.getElementById("ram-free").innerText = `${d.ram_free || 0} GB`;
+      document.getElementById("ram-total").innerText = `${d.ram_total} GB`;
+      document.getElementById("ram-min-max").innerText = `${min.ram_gb.toFixed(2)} GB / ${peak.ram_gb.toFixed(2)} GB`;
+
+      // Swap Stats
+      const swapPercent = d.swap_percent || 0;
+      document.getElementById("swap").innerText = swapPercent ? `${swapPercent}%` : "N/A";
+      document.getElementById("swap-progress").style.width = swapPercent ? `${swapPercent}%` : "0%";
+      document.getElementById("swap-used").innerText = d.swap_used ? `${d.swap_used} GB` : "N/A";
+      document.getElementById("swap-total").innerText = d.swap_total ? `${d.swap_total} GB` : "N/A";
+
+      // Disk Stats
+      document.getElementById("disk").innerText = `${d.disk_percent}%`;
+      document.getElementById("disk-progress").style.width = `${d.disk_percent}%`;
+      document.getElementById("disk-used").innerText = `${d.disk_used} GB`;
+      document.getElementById("disk-free").innerText = `${d.disk_free || (d.disk_total - d.disk_used).toFixed(2)} GB`;
+      document.getElementById("disk-total").innerText = `${d.disk_total} GB`;
+
+      // Network Stats
+      document.getElementById("net-sent").innerText = d.net_sent ? `${d.net_sent} GB` : "0 GB";
+      document.getElementById("net-recv").innerText = d.net_recv ? `${d.net_recv} GB` : "0 GB";
+
+      // System Stats
+      document.getElementById("platform").innerText = d.platform || "-";
+      document.getElementById("platform-release").innerText = d.platform_release || "-";
+      document.getElementById("processor").innerText = d.processor ? (d.processor.length > 35 ? d.processor.substring(0, 35) + "..." : d.processor) : "-";
+      document.getElementById("process-count").innerText = d.process_count || "-";
+      document.getElementById("uptime").innerText = d.uptime ? d.uptime.split(".")[0] : "-";
+      document.getElementById("boot-time").innerText = d.boot_time ? new Date(d.boot_time).toLocaleString() : "-";
+
+      // Application Stats
+      document.getElementById("users").innerText = d.active_users || 0;
+      document.getElementById("generated").innerText = d.generated_servers || 0;
+
+      // Update charts
+      updateChart(cpuChart, now, d.cpu);
+      updateChart(ramChart, now, d.ram_used);
+      updateChart(diskChart, now, d.disk_used);
+    });
+
+    function updateChart(chart, label, value) {
+      chart.data.labels.push(label);
+      chart.data.datasets[0].data.push(value);
+      if (chart.data.labels.length > maxPoints) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+      }
+      chart.update('none');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+ENV/
+.venv
+*.log
+*.sqlite
+*.db
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.git/
+.gitignore
+test.html
+app copy.py
+*.md
+README.md
+.dockerignore
+Dockerfile
+

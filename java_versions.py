@@ -1,3 +1,6 @@
+# Hardcoded Java version map (used as fallback)
+# The system now uses intelligent pattern matching and API queries for automatic detection.
+# This map is kept for backwards compatibility and as a fast lookup for known versions.
 JAVA_VERSION_MAP = {
     "fabric": {
         "1.21.5": "21",

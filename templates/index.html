@@ -1,288 +1,1061 @@
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
+<!DOCTYPE html>
+<html lang="en">
+<head>
     <meta charset="UTF-8">
-    <title>Minecraft Server Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M2SFG - Modpack to Server Files Generator</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-        margin: 0;
-        font-family: 'Segoe UI', sans-serif;
-        background: radial-gradient(circle at top left, #2c3e50, #1a252f);
-        color: #ecf0f1;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .bg-pattern {
+            position: fixed;
+            inset: 0;
+            opacity: 0.1;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2300e6ac' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+
+        .header {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            padding: 1.25rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(0, 230, 172, 0.2) 0%, rgba(0, 212, 255, 0.2) 100%);
+        }
+
+        .header-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00e6ac 0%, #00d4ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-subtitle {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-top: 0.25rem;
         }
 
         .container {
-        background: #1e2a38;
-        padding: 40px;
-        border-radius: 15px;
-        box-shadow: 0 12px 30px rgba(0,0,0,0.5);
-        width: 100%;
-        max-width: 520px;
-        animation: fadeIn 1s ease;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            border-color: rgba(0, 230, 172, 0.3);
+        }
+
+        .hidden {
+            display: none !important;
         }
 
         @keyframes fadeIn {
-        from { opacity: 0; transform: scale(0.95); }
-        to { opacity: 1; transform: scale(1); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
-        h1 {
-        font-size: 26px;
-        margin-bottom: 20px;
-        color: #00e6ac;
-        text-align: center;
+        .card-header {
+            text-align: center;
+            margin-bottom: 2rem;
         }
 
-        input[type="file"], button {
-        width: 100%;
-        padding: 12px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-        font-size: 15px;
+        .card-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, rgba(0, 230, 172, 0.2) 0%, rgba(0, 212, 255, 0.2) 100%);
+        }
+
+        .card-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00e6ac 0%, #00d4ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-subtitle {
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #e2e8f0;
+            font-weight: 500;
+            font-size: 0.9rem;
         }
 
         input[type="file"] {
-        background: #293b4a;
-        color: white;
-        border: 1px solid #555;
+            width: 100%;
+            padding: 0.875rem;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.5);
+            color: #e2e8f0;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
         }
 
-        button {
-        background-color: #00e6ac;
-        border: none;
-        font-weight: bold;
-        color: #000;
-        cursor: pointer;
+        input[type="file"]:hover {
+            border-color: #00e6ac;
+            background: rgba(15, 23, 42, 0.7);
         }
 
-        button:hover {
-        background-color: #00c99b;
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #00e6ac;
+            box-shadow: 0 0 0 3px rgba(0, 230, 172, 0.2);
         }
 
-        .progress-container {
-        background: #34495e;
-        height: 14px;
-        border-radius: 8px;
-        overflow: hidden;
-        display: none;
+        .btn {
+            width: 100%;
+            padding: 0.875rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00e6ac 0%, #00d4ff 100%);
+            color: #0f172a;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 230, 172, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: rgba(30, 41, 59, 0.8);
+            color: #e2e8f0;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(30, 41, 59, 1);
+            border-color: rgba(148, 163, 184, 0.4);
+        }
+
+        .info-box {
+            margin-top: 1.5rem;
+            padding: 1.25rem;
+            border-radius: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .info-box.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .info-box.success {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.3);
+        }
+
+        .info-box.info {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .info-box-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .info-box-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+        }
+
+        .info-box-content {
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
+
+        .info-box-content ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-box-content li {
+            margin-bottom: 0.25rem;
+        }
+
+        .progress-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .progress-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .progress-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 10px;
+            background: rgba(148, 163, 184, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 1rem;
         }
 
         .progress-bar {
-        background: #00e6ac;
-        height: 100%;
-        width: 0%;
-        transition: width 0.2s ease-in-out;
+            height: 100%;
+            background: linear-gradient(90deg, #00e6ac 0%, #00d4ff 100%);
+            border-radius: 5px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 230, 172, 0.5);
         }
 
-        #status {
-        margin-top: 10px;
-        font-size: 14px;
-        min-height: 20px;
-        text-align: center;
+        .status-text {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .logs-section {
+            margin-top: 1.5rem;
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .logs-title {
+            font-weight: 600;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+        }
+
+        .toggle-logs-btn {
+            background: none;
+            border: none;
+            color: #00e6ac;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .toggle-logs-btn:hover {
+            background: rgba(0, 230, 172, 0.1);
         }
 
         #log {
-        margin-top: 20px;
-        max-height: 250px;
-        overflow-y: auto;
-        background: #121a22;
-        border-radius: 8px;
-        padding: 10px;
-        font-size: 13px;
-        white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            background: rgba(15, 23, 42, 0.7);
+            border-radius: 12px;
+            padding: 1rem;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
         #log div {
-        margin-bottom: 4px;
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0;
+            color: #cbd5e1;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.05);
+        }
+
+        #log div:last-child {
+            border-bottom: none;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: #00e6ac;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            background: rgba(0, 230, 172, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 230, 172, 0.2);
+        }
+
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            background: #00e6ac;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00e6ac 0%, #00d4ff 100%);
+            color: #0f172a;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 230, 172, 0.3);
+            transition: all 0.2s;
+            z-index: 50;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 16px rgba(0, 230, 172, 0.4);
+        }
+
+        .popup-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .popup {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 90%;
+            width: 400px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .popup-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .popup-content {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .popup-content ol {
+            margin-left: 1.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .popup-content a {
+            color: #00e6ac;
+            text-decoration: none;
+        }
+
+        .popup-content a:hover {
+            text-decoration: underline;
+        }
+
+        .error-link {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .error-link a {
+            color: #00e6ac;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .error-link a:hover {
+            text-decoration: underline;
+        }
+
+        .custom-scrollbar {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(0, 230, 172, 0.3);
+            border-radius: 3px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 230, 172, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 2rem 1rem;
+            }
+
+            .card {
+                padding: 1.5rem;
+            }
+
+            .header {
+                padding: 1rem;
+            }
+
+            .header-title {
+                font-size: 1.25rem;
+            }
+
+            .card-title {
+                font-size: 1.5rem;
+            }
+
+            .back-to-top {
+                bottom: 1rem;
+                right: 1rem;
+                width: 44px;
+                height: 44px;
+            }
         }
     </style>
-    </head>
-    <body>
-    <div class="container">
-        <h1>🚀 Minecraft Server Files Generator</h1>
-        <form id="uploadForm" enctype="multipart/form-data">
-        <label>
-        <strong>.mrpack file</strong><br/>
-        <input type="file" name="mrpack" accept=".mrpack" required />
-        </label>
-        <br/><br/>
-        <button type="submit">Generate Server Files</button>
-        </form>
-        <div class="progress-container" id="progressContainer">
-        <div class="progress-bar" id="progressBar"></div>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    
+    <header class="header">
+        <div class="header-content">
+            <div class="header-icon">
+                <i data-lucide="server" class="w-6 h-6" style="color: #00e6ac;"></i>
+            </div>
+            <div>
+                <div class="header-title">Modpack 2 Server Files Generator</div>
+                <div class="header-subtitle">Transform modpacks into server files instantly</div>
+            </div>
         </div>
-        <div id="status"></div>
-        <div id="log"></div>
+    </header>
+
+    <div class="container">
+        <!-- Upload Section -->
+        <div id="uploadSection" class="card">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i data-lucide="upload" class="w-8 h-8" style="color: #00e6ac;"></i>
+                </div>
+                <h2 class="card-title">Upload Modpack</h2>
+                <p class="card-subtitle">Select a .mrpack file to generate server files</p>
+            </div>
+            
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="mrpackFile">Modpack File (.mrpack)</label>
+                    <input type="file" id="mrpackFile" name="mrpack" accept=".mrpack" required />
+                </div>
+                
+                <button type="submit" id="submitBtn" class="btn btn-primary">
+                    <i data-lucide="zap" class="w-5 h-5"></i>
+                    <span>Generate Server Files</span>
+                </button>
+            </form>
+
+            <div class="info-box warning">
+                <div class="info-box-header">
+                    <i data-lucide="alert-circle" class="w-5 h-5" style="color: #f59e0b;"></i>
+                    <div class="info-box-title">Supported Formats</div>
+                </div>
+                <div class="info-box-content">
+                    <ul>
+                        <li>• Modrinth modpack files (.mrpack)</li>
+                        <li>• Fabric, Forge, Quilt, NeoForge Loaders</li>
+                        <li>• Automatic server setup and configuration</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div id="progressSection" class="card hidden">
+            <div class="progress-section">
+                <div class="progress-header">
+                    <i data-lucide="loader" class="w-6 h-6" style="color: #00e6ac; animation: spin 1s linear infinite;"></i>
+                    <h3 class="progress-title">Generating Server</h3>
+                </div>
+                
+                <div id="connectionStatus" class="connection-status hidden">
+                    <div class="connection-dot"></div>
+                    <span>Connected to log stream</span>
+                </div>
+
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
+                </div>
+                
+                <div id="status" class="status-text"></div>
+                <div id="error-link" class="error-link"></div>
+            </div>
+
+            <div class="logs-section">
+                <div class="logs-header">
+                    <span class="logs-title">Generation Logs</span>
+                    <button id="toggleLogs" class="toggle-logs-btn">Show</button>
+                </div>
+                
+                <div id="log" class="custom-scrollbar hidden"></div>
+                
+                <button id="copyLogsBtn" class="btn btn-secondary" style="margin-top: 1rem;">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                    <span>Copy Logs</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Complete Section -->
+        <div id="completeSection" class="card hidden">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i data-lucide="check-circle" class="w-8 h-8" style="color: #00e6ac;"></i>
+                </div>
+                <h2 class="card-title">Server Ready!</h2>
+                <p class="card-subtitle">Your server files are ready for download</p>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem;">
+                <button id="downloadBtn" class="btn btn-primary">
+                    <i data-lucide="download" class="w-5 h-5"></i>
+                    <span>Download Server Files</span>
+                </button>
+                
+                <button id="resetBtn" class="btn btn-secondary">
+                    <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                    <span>Generate Another Server</span>
+                </button>
+            </div>
+
+            <div class="info-box info">
+                <div class="info-box-header">
+                    <i data-lucide="info" class="w-5 h-5" style="color: #3b82f6;"></i>
+                    <div class="info-box-title">Setup Instructions</div>
+                </div>
+                <div class="info-box-content">
+                    <ol>
+                        <li>1. Extract the ZIP file to your server directory</li>
+                        <li>2. Run the server JAR file (e.g., server.jar)</li>
+                        <li>3. Accept the EULA and configure server.properties</li>
+                        <li>4. Start your modded Minecraft server!</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
     </div>
-    <div id="quiltPopup" style="display:none; position:fixed; top:20%; left:50%; transform:translateX(-50%);
-    background:#fff; padding:20px; border:2px solid #444; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.3);
-    z-index:9999; width:400px; max-width:90%;">
-    <h2 style="margin-top:0;">Quilt Installer Required</h2>
-    <p>This modpack uses the <strong>Quilt mod loader</strong>, but you didn’t upload the Quilt installer.</p>
-    <p>To continue:</p>
-    <ol>
-        <li>Go to <a href="https://quiltmc.org/en/install" target="_blank">quiltmc.org/en/install</a></li>
-        <li>Download the <strong>.jar</strong> version of the installer</li>
-        <li>Re-upload it in the form below before clicking Generate</li>
-    </ol>
-    <button onclick="document.getElementById('quiltPopup').style.display='none'" style="margin-top:10px;">Close</button>
-    </div>
 
-<script>
-const form = document.getElementById("uploadForm");
-const progressBar = document.getElementById("progressBar");
-const progressContainer = document.getElementById("progressContainer");
-const status = document.getElementById("status");
-const log = document.getElementById("log");
 
-let logStream = null;
+    <!-- Back to Top Button -->
+    <button id="backToTop" class="back-to-top hidden">
+        <i data-lucide="chevron-up" class="w-6 h-6"></i>
+    </button>
 
-function logMessage(message) {
-    const time = new Date().toLocaleTimeString();
-    const entry = document.createElement("div");
-    entry.textContent = `[${time}] ${message}`;
-    log.appendChild(entry);
-    log.scrollTop = log.scrollHeight;
-}
+    <script>
+        lucide.createIcons();
+        
+        // Add spin animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
 
-function startLogStream(requestId) {
-    if (logStream) {
-        logStream.close();
-    }
-    logStream = new EventSource(`/api/logs/${requestId}`);
-    logStream.onmessage = (event) => {
-        logMessage(event.data);
-    };
-    logStream.onerror = () => {
-        logMessage("❌ Log stream closed.");
-        logStream.close();
-        logStream = null;
-    };
-}
+        const form = document.getElementById("uploadForm");
+        const submitBtn = document.getElementById("submitBtn");
+        const progressBar = document.getElementById("progressBar");
+        const progressSection = document.getElementById("progressSection");
+        const uploadSection = document.getElementById("uploadSection");
+        const completeSection = document.getElementById("completeSection");
+        const status = document.getElementById("status");
+        const errorLink = document.getElementById("error-link");
+        const log = document.getElementById("log");
+        const downloadBtn = document.getElementById("downloadBtn");
+        const resetBtn = document.getElementById("resetBtn");
+        const toggleLogs = document.getElementById("toggleLogs");
+        const copyLogsBtn = document.getElementById("copyLogsBtn");
+        const backToTop = document.getElementById("backToTop");
+        let logStream = null;
 
-function stopLogStream() {
-    if (logStream) {
-        logStream.close();
-        logStream = null;
-    }
-}
-
-function copyLogs() {
-    const lines = Array.from(log.children).map(div => div.textContent).join("\n");
-    navigator.clipboard.writeText(lines).then(() => {
-        logMessage("📋 Logs copied to clipboard.");
-    });
-}
-
-form.onsubmit = function (e) {
-    e.preventDefault();
-    const formData = new FormData(form);
-    const requestId = crypto.randomUUID();  // ✅ Only create once
-
-    progressBar.style.width = "0%";
-    progressContainer.style.display = "block";
-    status.textContent = "";
-    log.innerHTML = "";
-    logMessage("Upload started...");
-
-    fetch("/api/check_loader", {
-        method: "POST",
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.loader === "quilt") {
-            localStorage.setItem("mrpackFileName", formData.get("mrpack").name);
-            window.location.href = "/quilt";
-            return;
+        function logMessage(message) {
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement("div");
+            entry.textContent = `[${time}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+            
+            entry.style.opacity = '0';
+            setTimeout(() => {
+                entry.style.transition = 'opacity 0.3s';
+                entry.style.opacity = '1';
+            }, 10);
+            
+            while (log.children.length > 100) {
+                log.removeChild(log.firstChild);
+            }
         }
 
-        startLogStream(requestId);  // ✅ start log stream right before request starts
-
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", `/api/generate?request_id=${requestId}`);
-        xhr.responseType = "blob";
-
-        xhr.upload.onprogress = function (e) {
-            if (e.lengthComputable) {
-                const percent = ((e.loaded / e.total) * 100).toFixed(1);
-                progressBar.style.width = percent + "%";
-                logMessage(`Upload progress: ${percent}%`);
+        function startLogStream(requestId) {
+            if (logStream) logStream.close();
+            
+            log.classList.remove('hidden');
+            toggleLogs.textContent = "Hide";
+            const logsSection = document.getElementById('logsSection');
+            if (logsSection) {
+                logsSection.classList.remove('hidden');
             }
-        };
-
-        xhr.onload = function () {
-            stopLogStream();  // ✅ stop the log stream after request completes
-
-            if (xhr.status === 200) {
-                const blob = xhr.response;
-                const downloadUrl = URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.href = downloadUrl;
-                link.download = "modded-server.zip";
-                link.click();
-                status.textContent = "✅ Download started!";
-                logMessage("Server generated successfully.");
-            } else {
-                const text = xhr.responseText;
-                try {
-                    const error = JSON.parse(text);
-                    status.textContent = "❌ " + (error.message || "Server error");
-                    logMessage("❌ Server error: " + (error.message || "Unknown"));
-                    if (error.popup === "quilt_installer_required") {
-                        document.getElementById('quiltPopup').style.display = 'block';
-                    }
-                } catch {
-                    status.textContent = "❌ Unexpected server error.";
-                    logMessage("❌ Unexpected response from server.");
+            
+            let retries = 10;
+            function connect() {
+                console.log(`Connecting to log stream: /api/logs/${requestId}`);
+                logStream = new EventSource(`/api/logs/${requestId}`);
+                
+                const connectionStatus = document.getElementById('connectionStatus');
+                if (connectionStatus) {
+                    connectionStatus.classList.remove('hidden');
                 }
+                
+                logStream.onmessage = (event) => {
+                    console.log("Received log message:", event.data);
+                    if (event.data && event.data.trim() && !event.data.startsWith(':')) {
+                        logMessage(event.data);
+                    }
+                    if (event.data.includes("Download the") && event.data.includes("manually from")) {
+                        const linkMatch = event.data.match(/https?:\/\/[^\s]+/);
+                        if (linkMatch && !errorLink.innerHTML) {
+                            errorLink.innerHTML = `<a href="${linkMatch[0]}" target="_blank">Download Installer Manually</a>`;
+                        }
+                    }
+                    if (event.data.includes("Extracted .mrpack successfully")) {
+                        progressBar.style.width = "20%";
+                    } else if (event.data.includes("Downloaded mods and copied overrides successfully")) {
+                        progressBar.style.width = "60%";
+                    } else if (event.data.includes("Server setup complete")) {
+                        progressBar.style.width = "90%";
+                    } else if (event.data.includes("ZIP ready") || event.data.includes("ZIP created successfully") || event.data.includes("✅ ZIP ready")) {
+                        progressBar.style.width = "100%";
+                        logMessage("📦 ZIP file is ready");
+                    } else if (event.data.includes("Server generation complete") || event.data.includes("Download will start")) {
+                        progressBar.style.width = "100%";
+                        logMessage("🎉 Server generation complete!");
+                    }
+                };
+                
+                logStream.onerror = (error) => {
+                    console.error("EventSource error:", error);
+                    const connectionStatus = document.getElementById('connectionStatus');
+                    if (connectionStatus) {
+                        connectionStatus.classList.add('hidden');
+                    }
+                    
+                    if (logStream.readyState === EventSource.CONNECTING) {
+                        logMessage("🔄 Reconnecting to log stream...");
+                        setTimeout(() => {
+                            if (logStream && logStream.readyState === EventSource.CONNECTING) {
+                                logStream.close();
+                                connect();
+                            }
+                        }, 2000);
+                    } else if (logStream.readyState === EventSource.CLOSED) {
+                        if (retries > 0) {
+                            retries--;
+                            logMessage(`⚠️ Log stream disconnected. Retrying (${retries} left)...`);
+                            setTimeout(connect, 2000);
+                        } else {
+                            logMessage("❌ Log stream closed permanently.");
+                            if (logStream) {
+                                logStream.close();
+                            }
+                            logStream = null;
+                        }
+                    }
+                };
+                
+                logStream.onopen = () => {
+                    logMessage("✅ Connected to log stream");
+                    console.log("EventSource connection opened for:", requestId);
+                };
+                
+                logStream.addEventListener('open', () => {
+                    logMessage("✅ Log stream connection established");
+                    console.log("EventSource 'open' event fired");
+                });
+            }
+            connect();
+        }
+
+        function stopLogStream() {
+            if (logStream) {
+                logStream.close();
+                logStream = null;
+            }
+        }
+
+        function copyLogs() {
+            const lines = Array.from(log.children).map(div => div.textContent).join("\n");
+            navigator.clipboard.writeText(lines).then(() => {
+                logMessage("📋 Logs copied to clipboard.");
+            }).catch(() => {
+                logMessage("❌ Failed to copy logs.");
+            });
+        }
+
+        async function checkLoader(formData) {
+            try {
+                const response = await fetch("/api/check_loader", {
+                    method: "POST",
+                    body: formData
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                return await response.json();
+            } catch (e) {
+                logMessage(`❌ Failed to check loader: ${e.message}`);
+                throw e;
+            }
+        }
+
+        function showSection(sectionId) {
+            [uploadSection, progressSection, completeSection].forEach(section => {
+                section.classList.add('hidden');
+                if (section.id === sectionId) section.classList.remove('hidden');
+            });
+            if (sectionId === 'progressSection' || sectionId === 'completeSection') {
+                backToTop.classList.remove('hidden');
+            } else {
+                backToTop.classList.add('hidden');
+            }
+            lucide.createIcons();
+        }
+
+        form.onsubmit = async function (e) {
+            e.preventDefault();
+            submitBtn.disabled = true;
+            const formData = new FormData(form);
+            const requestId = crypto.randomUUID();
+            
+            window.currentRequestId = requestId;
+            window.downloadTriggered = false;
+            localStorage.setItem('currentRequestId', requestId);
+
+            const mrpackFile = form.querySelector('input[name="mrpack"]').files[0];
+            if (mrpackFile) {
+                localStorage.setItem("mrpackFileName", mrpackFile.name);
+            }
+
+            progressBar.style.width = "0%";
+            showSection("progressSection");
+            status.textContent = "";
+            errorLink.innerHTML = "";
+            log.innerHTML = "";
+            
+            const logsSection = document.getElementById('logsSection');
+            if (logsSection) {
+                logsSection.classList.remove('hidden');
+            }
+            log.classList.remove('hidden');
+            toggleLogs.textContent = "Hide";
+            
+            logMessage("🛠 Starting server generation...");
+            logMessage("📤 Upload started...");
+
+            try {
+                startLogStream(requestId);
+                
+                const loaderData = await checkLoader(formData);
+
+                const xhr = new XMLHttpRequest();
+                xhr.open("POST", `/api/generate?request_id=${requestId}`, true);
+                xhr.responseType = "text";
+
+                xhr.upload.onprogress = function (e) {
+                    if (e.lengthComputable) {
+                        const percent = ((e.loaded / e.total) * 100).toFixed(1);
+                        progressBar.style.width = percent + "%";
+                        logMessage(`Upload progress: ${percent}%`);
+                    }
+                };
+
+                xhr.onload = function () {
+                    submitBtn.disabled = false;
+
+                    if (xhr.status === 200) {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            status.textContent = data.message;
+
+                            if (data.status === "success" && data.download_url) {
+                                logMessage(`📥 Received download URL: ${data.download_url}`);
+                                showSection("completeSection");
+                                
+                                downloadBtn.onclick = () => {
+                                    logMessage("🖱️ Manual download button clicked");
+                                    window.open(data.download_url, '_blank');
+                                    logMessage("✅ Download started!");
+                                };
+                                
+                                if (!window.downloadTriggered) {
+                                    window.downloadTriggered = true;
+                                    logMessage("✅ Server generation complete! Starting auto-download...");
+                                    
+                                    function triggerDownload() {
+                                        try {
+                                            logMessage(`🔗 Attempting to download from: ${data.download_url}`);
+                                            
+                                            const link = document.createElement("a");
+                                            link.href = data.download_url;
+                                            link.download = "modded-server.zip";
+                                            link.style.display = 'none';
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            
+                                            setTimeout(() => {
+                                                document.body.removeChild(link);
+                                            }, 100);
+                                            
+                                            logMessage("✅ Download triggered via link click");
+                                            
+                                            setTimeout(() => {
+                                                window.open(data.download_url, '_blank');
+                                                logMessage("✅ Download also triggered via window.open (fallback)");
+                                            }, 500);
+                                            
+                                        } catch (e) {
+                                            logMessage(`❌ Error triggering download: ${e.message}`);
+                                            window.open(data.download_url, '_blank');
+                                        }
+                                    }
+                                    
+                                    setTimeout(triggerDownload, 2000);
+                                    
+                                    setTimeout(() => {
+                                        stopLogStream();
+                                    }, 5000);
+                                } else {
+                                    logMessage("⚠️ Download already triggered, skipping auto-download");
+                                }
+                                
+                                logMessage("✅ Server generation complete!");
+                            } else {
+                                stopLogStream();
+                            }
+                        } catch (e) {
+                            status.textContent = "❌ Failed to parse server response.";
+                            logMessage("❌ Error parsing JSON response: " + e.message);
+                            stopLogStream();
+                        }
+                    } else {
+                        stopLogStream();
+                        window.downloadTriggered = true;
+                        try {
+                            const data = xhr.responseText ? JSON.parse(xhr.responseText) : { message: "Unknown error" };
+                            status.textContent = `❌ ${data.message || "Unknown error"}`;
+                            logMessage(`❌ Server error: ${data.message || "Unknown error"}`);
+                            if (data.download_link) {
+                                errorLink.innerHTML = `
+                                    <p style="margin-bottom: 0.5rem; color: #ef4444;">Error: ${data.error || "Server error"}</p>
+                                    <p style="margin-bottom: 0.5rem;">${data.message || "Unknown error"}</p>
+                                    <a href="${data.download_link}" target="_blank">Download Installer Manually</a>
+                                `;
+                            }
+                        } catch (e) {
+                            status.textContent = "❌ Invalid error response.";
+                            logMessage("❌ Error parsing error response: " + e.message);
+                        }
+                    }
+                };
+
+                xhr.onerror = function () {
+                    stopLogStream();
+                    submitBtn.disabled = false;
+                    status.textContent = "❌ Network error.";
+                    logMessage("❌ Network error during upload.");
+                    window.downloadTriggered = true;
+                };
+
+                xhr.send(formData);
+            } catch (e) {
+                stopLogStream();
+                submitBtn.disabled = false;
+                status.textContent = "❌ Failed to process request.";
+                logMessage(`❌ Error: ${e.message}`);
             }
         };
 
-        xhr.onerror = function () {
-            stopLogStream();  // ✅ ensure cleanup on failure
-            status.textContent = "❌ Network error.";
-            logMessage("❌ Network error during upload.");
+        resetBtn.onclick = () => {
+            showSection("uploadSection");
+            submitBtn.disabled = false;
+            progressBar.style.width = "0%";
+            status.textContent = "";
+            errorLink.innerHTML = "";
+            log.innerHTML = "";
+            log.classList.add('hidden');
+            toggleLogs.textContent = "Show";
         };
 
-        xhr.send(formData);
-    });
-};
+        toggleLogs.onclick = () => {
+            log.classList.toggle('hidden');
+            toggleLogs.textContent = log.classList.contains('hidden') ? "Show" : "Hide";
+        };
 
-  document.addEventListener("DOMContentLoaded", () => {
-    // Animate sections
-    document.querySelectorAll(".section").forEach((el, i) => {
-      setTimeout(() => el.style.opacity = "1", i * 150);
-    });
+        copyLogsBtn.onclick = copyLogs;
 
-    // Mobile warning
-    if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
-      const popup = document.createElement("div");
-      popup.className = "popup-overlay";
-      popup.innerHTML = `
-        <div class="popup-box">
-            ⚠️ This site is best viewed on a desktop.<br /><br />
-            Please switch to desktop mode or use a computer for the best experience.
-            <br /><br />
-            <button onclick="this.closest('.popup-overlay').remove()">OK</button>
-        </div>
-      `;
-      document.body.appendChild(popup);
-    }
+        backToTop.onclick = () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
 
-    // Add "Copy Logs" button
-    const copyBtn = document.createElement("button");
-    copyBtn.textContent = "📋 Copy Logs";
-    copyBtn.style.marginTop = "10px";
-    copyBtn.onclick = copyLogs;
-    document.querySelector(".container")?.appendChild(copyBtn);
-  });
+        document.addEventListener("DOMContentLoaded", () => {
+            lucide.createIcons();
+            if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
+                const popup = document.createElement("div");
+                popup.className = "popup-overlay";
+                popup.innerHTML = `
+                    <div class="popup">
+                        <h3 class="popup-title">Mobile Warning</h3>
+                        <div class="popup-content">
+                            <p>This site is best viewed on a desktop. Please switch to desktop mode or use a computer for the best experience.</p>
+                        </div>
+                        <button onclick="this.parentElement.parentElement.remove()" class="btn btn-secondary">OK</button>
+                    </div>
+                `;
+                document.body.appendChild(popup);
+                lucide.createIcons();
+            }
+        });
 
-</script>
-
-    </body>
-    </html>
+        window.addEventListener("scroll", () => {
+            if (window.scrollY > 200) {
+                backToTop.classList.remove("hidden");
+            } else {
+                backToTop.classList.add("hidden");
+            }
+        });
+    </script>
+</body>
+</html>
