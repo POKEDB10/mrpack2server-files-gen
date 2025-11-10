@@ -1,3 +1,12 @@
+# CRITICAL: Monkey-patch gevent BEFORE any SSL-related imports
+# This must be done before importing aiohttp, requests, or any other modules that use SSL
+try:
+    from gevent import monkey
+    monkey.patch_all()
+except ImportError:
+    # gevent not available, continue without patching
+    pass
+
 # Standard library imports
 import atexit
 import csv
@@ -206,7 +215,7 @@ QUILT_INSTALLER_CACHE_MAX_AGE = 1 * 24 * 3600  # 1 day (check for updates daily)
 # Use a writable location for the count file (prefer current directory, fallback to temp)
 def get_writable_count_file_dir():
     """Get a writable directory for the count file.
-    Priority: env var > local project dir (if local) > /tmp > /var/tmp > subdirectory in current dir > system temp
+    Priority: env var > Render disk mount > local project dir (if local) > /tmp > /var/tmp > subdirectory in current dir > system temp
     Note: /tmp is ephemeral and will be lost on container restart, but is always available in Docker.
     For persistence, use COUNT_FILE_DIR env var or mount a volume.
     To sync between local and Docker/Render, set COUNT_FILE_DIR to the same path in both environments.
@@ -226,7 +235,26 @@ def get_writable_count_file_dir():
         except (OSError, IOError, PermissionError):
             logging.warning(f"⚠️ COUNT_FILE_DIR '{env_dir}' not writable, trying fallback...")
     
-    # 2. For local development, prioritize project directory (persistent and visible)
+    # 2. Check for Render disk mount (CRITICAL for Render.com persistence)
+    render_disk = os.environ.get("RENDER_DISK_PATH", "/opt/render/project/src/data")
+    if render_disk:
+        try:
+            # Create directory if it doesn't exist (Render disk might be mounted but directory not created)
+            if not os.path.exists(render_disk):
+                os.makedirs(render_disk, exist_ok=True)
+            # Verify it exists and is writable
+            if os.path.exists(render_disk) and os.access(render_disk, os.W_OK):
+                test_file = os.path.join(render_disk, ".test_write")
+                with open(test_file, 'w') as f:
+                    f.write('test')
+                    f.flush()
+                    os.fsync(f.fileno())
+                os.remove(test_file)
+                return render_disk
+        except (OSError, IOError, PermissionError) as e:
+            logging.warning(f"⚠️ Render disk mount '{render_disk}' not available: {e}")
+    
+    # 3. For local development, prioritize project directory (persistent and visible)
     is_local = os.environ.get("RUNNING_LOCALLY") == "1" or not os.environ.get("GUNICORN_CMD_ARGS")
     if is_local:
         try:
@@ -258,7 +286,7 @@ def get_writable_count_file_dir():
             except (OSError, IOError, PermissionError):
                 pass
     
-    # 3. Try /tmp FIRST (always exists and writable in Docker containers)
+    # 4. Try /tmp (always exists and writable in Docker containers, but may be ephemeral on Render)
     try:
         # /tmp should always exist, but ensure it does
         if not os.path.exists('/tmp'):
@@ -276,7 +304,7 @@ def get_writable_count_file_dir():
         logging.warning(f"⚠️ /tmp not writable: {e}, trying alternatives...")
         pass
     
-    # 4. Try /var/tmp (more persistent than /tmp in some systems, but may not exist)
+    # 5. Try /var/tmp (more persistent than /tmp in some systems, but may not exist)
     try:
         # Ensure parent directory exists first
         if not os.path.exists('/var'):
@@ -295,7 +323,7 @@ def get_writable_count_file_dir():
         logging.warning(f"⚠️ /var/tmp not available: {e}, trying alternatives...")
         pass
     
-    # 5. Try to create a subdirectory in current directory (might work even if root is protected)
+    # 6. Try to create a subdirectory in current directory (might work even if root is protected)
     try:
         current_dir = os.getcwd()
         # Skip /app
