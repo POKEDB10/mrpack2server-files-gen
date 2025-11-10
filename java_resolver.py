@@ -29,33 +29,47 @@ JAVA_VERSION_RULES = [
     (parse_version("1.0"), parse_version("1.15.999"), "8"),
 ]
 
-# Java installation locations (in order of preference)
-JAVA_BASE_PATHS = [
-    "/tmp/java",           # Writable temp directory (Render, Docker)
+# Java installation base path - use /tmp/java for Render.com and Docker
+# This is the writable location where setup_java.sh installs Java
+JAVA_BASE_PATH = "/tmp/java"
+
+# Fallback paths (for backwards compatibility and different environments)
+JAVA_FALLBACK_PATHS = [
     os.path.expanduser("~/java"),  # User home directory
     os.path.join(os.getcwd(), "java"),  # Current directory
     "/opt/java",           # System directory (may be read-only)
 ]
 
 def get_java_path(version):
-    """Get Java path, checking multiple possible installation locations."""
-    # Check each possible base path
-    for base_path in JAVA_BASE_PATHS:
+    """Get Java path, checking /tmp/java first (where setup_java.sh installs it)."""
+    # Primary path: /tmp/java (where setup_java.sh installs Java)
+    primary_path = os.path.join(JAVA_BASE_PATH, f"java-{version}", "bin", "java")
+    if os.path.exists(primary_path):
+        return primary_path
+    
+    # Check fallback paths
+    for base_path in JAVA_FALLBACK_PATHS:
         java_path = os.path.join(base_path, f"java-{version}", "bin", "java")
         if os.path.exists(java_path):
             return java_path
     
-    # Fallback to old /opt location (for backwards compatibility)
-    fallback_path = f"/opt/java-{version}/bin/java"
-    if os.path.exists(fallback_path):
-        return fallback_path
+    # Fallback to old /opt/java-{version} location (for backwards compatibility)
+    old_path = f"/opt/java-{version}/bin/java"
+    if os.path.exists(old_path):
+        return old_path
     
     # Return expected path even if not found (for error messages)
-    return os.path.join(JAVA_BASE_PATHS[0], f"java-{version}", "bin", "java")
+    return primary_path
 
 def is_java_installed(version):
-    """Check if Java is installed in any of the possible locations."""
-    for base_path in JAVA_BASE_PATHS:
+    """Check if Java is installed, checking /tmp/java first."""
+    # Primary path: /tmp/java
+    primary_path = os.path.join(JAVA_BASE_PATH, f"java-{version}", "bin", "java")
+    if os.path.exists(primary_path):
+        return True
+    
+    # Check fallback paths
+    for base_path in JAVA_FALLBACK_PATHS:
         java_path = os.path.join(base_path, f"java-{version}", "bin", "java")
         if os.path.exists(java_path):
             return True
@@ -218,5 +232,6 @@ def resolve_java_version(loader_type, mc_version):
             return version
     
     # List all checked paths for debugging
-    checked_paths = ", ".join(JAVA_BASE_PATHS)
+    all_paths = [JAVA_BASE_PATH] + JAVA_FALLBACK_PATHS + ["/opt/java-{version}"]
+    checked_paths = ", ".join(all_paths)
     raise RuntimeError(f"❌ No supported Java version found. Checked: {checked_paths}")
