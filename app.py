@@ -4200,6 +4200,24 @@ if __name__ == '__main__':
     except Exception as e:
         logging.warning("Default Java not available or not installed.")
     
+    # Verify Java installation at startup
+    logging.info("🔍 Verifying Java installation...")
+    log_installed_java_versions()
+    
+    # Check if /tmp/java exists and list contents
+    java_base = "/tmp/java"
+    if os.path.exists(java_base):
+        try:
+            java_dirs = [d for d in os.listdir(java_base) if os.path.isdir(os.path.join(java_base, d))]
+            if java_dirs:
+                logging.info(f"✅ Found Java installations in {java_base}: {', '.join(java_dirs)}")
+            else:
+                logging.warning(f"⚠️ {java_base} exists but is empty")
+        except Exception as e:
+            logging.warning(f"⚠️ Could not list {java_base}: {e}")
+    else:
+        logging.warning(f"⚠️ Java base directory {java_base} does not exist")
+    
     # Initialize server count
     initialize_server_count()
     

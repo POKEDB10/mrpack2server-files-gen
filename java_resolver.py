@@ -81,8 +81,29 @@ def is_java_installed(version):
     return False
 
 def log_installed_java_versions():
-    found = [v for v in FALLBACK_JAVA_VERSIONS if is_java_installed(v)]
-    print(f"🧩 Java versions installed: {', '.join(found) if found else 'None'}")
+    """Log all installed Java versions with their paths."""
+    found = []
+    for version in FALLBACK_JAVA_VERSIONS:
+        if is_java_installed(version):
+            java_path = get_java_path(version)
+            found.append(f"{version} ({java_path})")
+    
+    if found:
+        print(f"🧩 Java versions installed: {', '.join(found)}")
+    else:
+        print(f"⚠️ No Java versions found. Checked base path: {JAVA_BASE_PATH}")
+        # List what's actually in the base path
+        if os.path.exists(JAVA_BASE_PATH):
+            try:
+                contents = os.listdir(JAVA_BASE_PATH)
+                if contents:
+                    print(f"   Directory {JAVA_BASE_PATH} contains: {', '.join(contents)}")
+                else:
+                    print(f"   Directory {JAVA_BASE_PATH} is empty")
+            except Exception as e:
+                print(f"   Could not list {JAVA_BASE_PATH}: {e}")
+        else:
+            print(f"   Directory {JAVA_BASE_PATH} does not exist")
 
 def get_java_version_from_pattern(mc_version):
     """Determine Java version based on Minecraft version pattern matching."""
@@ -232,6 +253,23 @@ def resolve_java_version(loader_type, mc_version):
             return version
     
     # List all checked paths for debugging
-    all_paths = [JAVA_BASE_PATH] + JAVA_FALLBACK_PATHS + ["/opt/java-{version}"]
+    all_paths = [JAVA_BASE_PATH] + JAVA_FALLBACK_PATHS + [f"/opt/java-{version}"]
     checked_paths = ", ".join(all_paths)
-    raise RuntimeError(f"❌ No supported Java version found. Checked: {checked_paths}")
+    
+    # Provide more detailed error message
+    error_msg = f"❌ No supported Java version found. Checked: {checked_paths}"
+    
+    # Check if base path exists and list contents
+    if os.path.exists(JAVA_BASE_PATH):
+        try:
+            contents = os.listdir(JAVA_BASE_PATH)
+            if contents:
+                error_msg += f"\n   Found in {JAVA_BASE_PATH}: {', '.join(contents)}"
+            else:
+                error_msg += f"\n   {JAVA_BASE_PATH} exists but is empty"
+        except Exception as e:
+            error_msg += f"\n   Could not list {JAVA_BASE_PATH}: {e}"
+    else:
+        error_msg += f"\n   {JAVA_BASE_PATH} does not exist (Java may not have been installed during build)"
+    
+    raise RuntimeError(error_msg)
