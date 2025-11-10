@@ -1,28 +1,48 @@
 #!/bin/bash
 set -e
-JAVA_BASE="/opt"
+
+# Use writable location - try /tmp first, fallback to project directory
+if [ -w "/tmp" ]; then
+  JAVA_BASE="/tmp/java"
+elif [ -w "$HOME" ]; then
+  JAVA_BASE="$HOME/java"
+else
+  # Last resort: use current directory
+  JAVA_BASE="$(pwd)/java"
+fi
+
 mkdir -p downloads
+mkdir -p "$JAVA_BASE"
 
 install_java() {
   version=$1
   url=$2
   dest="$JAVA_BASE/java-${version}"
 
-  if [ -d "$dest" ]; then
-    echo "✅ Java $version already installed"
+  if [ -d "$dest" ] && [ -f "$dest/bin/java" ]; then
+    echo "✅ Java $version already installed at $dest"
     return
   fi
 
-  echo "📦 Installing Java $version..."
+  echo "📦 Installing Java $version to $dest..."
   file="downloads/java-${version}.tar.gz"
 
   if [ ! -f "$file" ]; then
+    echo "⬇️ Downloading Java $version..."
     curl -sSfL -o "$file" "$url"
   fi
 
   mkdir -p "$dest"
+  echo "📦 Extracting Java $version..."
   tar -xzf "$file" -C "$dest" --strip-components=1
-  echo "✅ Java $version installed to $dest"
+  
+  # Verify installation
+  if [ -f "$dest/bin/java" ]; then
+    echo "✅ Java $version installed to $dest"
+  else
+    echo "❌ Java $version installation failed - java binary not found"
+    return 1
+  fi
 }
 
 install_java 8  "https://github.com/adoptium/temurin8-binaries/releases/download/jdk8u412-b08/OpenJDK8U-jdk_x64_linux_hotspot_8u412b08.tar.gz" &

@@ -29,11 +29,42 @@ JAVA_VERSION_RULES = [
     (parse_version("1.0"), parse_version("1.15.999"), "8"),
 ]
 
+# Java installation locations (in order of preference)
+JAVA_BASE_PATHS = [
+    "/tmp/java",           # Writable temp directory (Render, Docker)
+    os.path.expanduser("~/java"),  # User home directory
+    os.path.join(os.getcwd(), "java"),  # Current directory
+    "/opt/java",           # System directory (may be read-only)
+]
+
 def get_java_path(version):
-    return f"/opt/java-{version}/bin/java"
+    """Get Java path, checking multiple possible installation locations."""
+    # Check each possible base path
+    for base_path in JAVA_BASE_PATHS:
+        java_path = os.path.join(base_path, f"java-{version}", "bin", "java")
+        if os.path.exists(java_path):
+            return java_path
+    
+    # Fallback to old /opt location (for backwards compatibility)
+    fallback_path = f"/opt/java-{version}/bin/java"
+    if os.path.exists(fallback_path):
+        return fallback_path
+    
+    # Return expected path even if not found (for error messages)
+    return os.path.join(JAVA_BASE_PATHS[0], f"java-{version}", "bin", "java")
 
 def is_java_installed(version):
-    return os.path.exists(get_java_path(version))
+    """Check if Java is installed in any of the possible locations."""
+    for base_path in JAVA_BASE_PATHS:
+        java_path = os.path.join(base_path, f"java-{version}", "bin", "java")
+        if os.path.exists(java_path):
+            return True
+    
+    # Check old /opt location for backwards compatibility
+    if os.path.exists(f"/opt/java-{version}/bin/java"):
+        return True
+    
+    return False
 
 def log_installed_java_versions():
     found = [v for v in FALLBACK_JAVA_VERSIONS if is_java_installed(v)]
@@ -186,4 +217,6 @@ def resolve_java_version(loader_type, mc_version):
                 }
             return version
     
-    raise RuntimeError("❌ No supported Java version found in /opt.")
+    # List all checked paths for debugging
+    checked_paths = ", ".join(JAVA_BASE_PATHS)
+    raise RuntimeError(f"❌ No supported Java version found. Checked: {checked_paths}")

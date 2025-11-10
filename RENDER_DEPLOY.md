@@ -52,7 +52,7 @@ git init
 git add .
 git commit -m "Initial commit"
 git branch -M main
-git remote add origin <your-github-repo-url>
+git remote add origin https://github.com/POKEDB10/mrpack2server-files-gen.git
 git push -u origin main
 ```
 
@@ -133,6 +133,7 @@ Once deployed:
 - Check build logs in Render dashboard
 - Ensure all dependencies are in `requirements.txt`
 - Verify `setup_java.sh` has execute permissions
+- **Java Installation**: Java is now installed to `/tmp/java` (writable location) instead of `/opt/java` (read-only on Render). If you see "Read-only file system" errors, they should be resolved with the updated script.
 
 ### App Crashes
 - Check logs in Render dashboard
