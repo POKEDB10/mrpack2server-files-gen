@@ -4201,22 +4201,31 @@ if __name__ == '__main__':
         logging.warning("Default Java not available or not installed.")
     
     # Verify Java installation at startup
+    # This will also copy Java from build location to persistent storage if needed
     logging.info("🔍 Verifying Java installation...")
     log_installed_java_versions()
     
-    # Check if /tmp/java exists and list contents
-    java_base = "/tmp/java"
-    if os.path.exists(java_base):
+    # Check both build location and persistent storage
+    build_java_base = "/tmp/java"
+    persistent_java_base = os.path.join(RENDER_DISK_PATH, "java") if os.path.exists(RENDER_DISK_PATH) else None
+    
+    # Check build location (Docker image)
+    if os.path.exists(build_java_base):
         try:
-            java_dirs = [d for d in os.listdir(java_base) if os.path.isdir(os.path.join(java_base, d))]
+            java_dirs = [d for d in os.listdir(build_java_base) if os.path.isdir(os.path.join(build_java_base, d)) and d.startswith("java-")]
             if java_dirs:
-                logging.info(f"✅ Found Java installations in {java_base}: {', '.join(java_dirs)}")
-            else:
-                logging.warning(f"⚠️ {java_base} exists but is empty")
+                logging.info(f"✅ Found Java installations in build location {build_java_base}: {', '.join(java_dirs)}")
         except Exception as e:
-            logging.warning(f"⚠️ Could not list {java_base}: {e}")
-    else:
-        logging.warning(f"⚠️ Java base directory {java_base} does not exist")
+            logging.warning(f"⚠️ Could not list {build_java_base}: {e}")
+    
+    # Check persistent storage
+    if persistent_java_base and os.path.exists(persistent_java_base):
+        try:
+            java_dirs = [d for d in os.listdir(persistent_java_base) if os.path.isdir(os.path.join(persistent_java_base, d)) and d.startswith("java-")]
+            if java_dirs:
+                logging.info(f"✅ Found Java installations in persistent storage {persistent_java_base}: {', '.join(java_dirs)}")
+        except Exception as e:
+            logging.warning(f"⚠️ Could not list {persistent_java_base}: {e}")
     
     # Initialize server count
     initialize_server_count()

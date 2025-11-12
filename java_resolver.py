@@ -100,8 +100,99 @@ def is_java_installed(version):
     
     return False
 
+def _copy_java_to_persistent_storage():
+    """Copy Java installations from Docker build location (/tmp/java) to persistent storage (RENDER_DISK_PATH/java)."""
+    # Only copy if RENDER_DISK_PATH is available and writable
+    if not os.path.exists(RENDER_DISK_PATH) or not os.access(RENDER_DISK_PATH, os.W_OK):
+        return False
+    
+    persistent_java_path = os.path.join(RENDER_DISK_PATH, "java")
+    build_java_path = "/tmp/java"
+    
+    # If persistent location already has Java, skip copying
+    if os.path.exists(persistent_java_path):
+        try:
+            contents = os.listdir(persistent_java_path)
+            # Check if any Java versions exist and have the java binary
+            java_versions = []
+            for d in contents:
+                if d.startswith("java-") and os.path.isdir(os.path.join(persistent_java_path, d)):
+                    java_bin = os.path.join(persistent_java_path, d, "bin", "java")
+                    if os.path.exists(java_bin):
+                        java_versions.append(d)
+            if java_versions:
+                # Java already exists in persistent storage
+                return True
+        except Exception:
+            pass
+    
+    # Check if Java exists in build location
+    if not os.path.exists(build_java_path):
+        return False
+    
+    try:
+        build_contents = os.listdir(build_java_path)
+        java_versions = [d for d in build_contents if d.startswith("java-") and os.path.isdir(os.path.join(build_java_path, d))]
+        
+        if not java_versions:
+            return False
+        
+        # Create persistent Java directory
+        os.makedirs(persistent_java_path, exist_ok=True)
+        
+        # Copy each Java version
+        import shutil
+        copied = []
+        for java_version in java_versions:
+            src = os.path.join(build_java_path, java_version)
+            dst = os.path.join(persistent_java_path, java_version)
+            
+            # Skip if already exists in destination and has java binary
+            if os.path.exists(dst):
+                java_bin = os.path.join(dst, "bin", "java")
+                if os.path.exists(java_bin):
+                    continue
+            
+            try:
+                print(f"📦 Copying {java_version} from build location to persistent storage...")
+                if os.path.exists(dst):
+                    # Remove existing incomplete installation
+                    shutil.rmtree(dst)
+                shutil.copytree(src, dst)
+                # Verify the copy was successful
+                java_bin = os.path.join(dst, "bin", "java")
+                if os.path.exists(java_bin):
+                    copied.append(java_version)
+                else:
+                    print(f"⚠️ Copy of {java_version} failed - java binary not found in destination")
+                    if os.path.exists(dst):
+                        shutil.rmtree(dst)
+            except Exception as e:
+                print(f"⚠️ Failed to copy {java_version}: {e}")
+                # Clean up partial copy
+                if os.path.exists(dst):
+                    try:
+                        shutil.rmtree(dst)
+                    except Exception:
+                        pass
+        
+        if copied:
+            print(f"✅ Copied {len(copied)} Java version(s) to persistent storage: {', '.join(copied)}")
+            return True
+        return False
+    except Exception as e:
+        print(f"⚠️ Failed to copy Java to persistent storage: {e}")
+        return False
+
 def log_installed_java_versions():
-    """Log all installed Java versions with their paths."""
+    """Log all installed Java versions with their paths.
+    Also attempts to copy Java from build location to persistent storage if needed."""
+    # Try to copy Java from build location to persistent storage first
+    # This ensures Java is available in persistent storage for Render.com deployments
+    copied = _copy_java_to_persistent_storage()
+    
+    # After copying (if successful), re-check Java installation
+    # This forces re-evaluation of JAVA_BASE_PATH after copy
     found = []
     for version in FALLBACK_JAVA_VERSIONS:
         if is_java_installed(version):
@@ -109,7 +200,10 @@ def log_installed_java_versions():
             found.append(f"{version} ({java_path})")
     
     if found:
-        print(f"🧩 Java versions installed: {', '.join(found)}")
+        if copied:
+            print(f"🧩 Java versions installed: {', '.join(found)} (copied to persistent storage)")
+        else:
+            print(f"🧩 Java versions installed: {', '.join(found)}")
     else:
         print(f"⚠️ No Java versions found. Checked base path: {JAVA_BASE_PATH}")
         # List what's actually in the base path
@@ -124,6 +218,18 @@ def log_installed_java_versions():
                 print(f"   Could not list {JAVA_BASE_PATH}: {e}")
         else:
             print(f"   Directory {JAVA_BASE_PATH} does not exist")
+        
+        # Also check build location
+        build_java_path = "/tmp/java"
+        if os.path.exists(build_java_path):
+            try:
+                build_contents = os.listdir(build_java_path)
+                java_versions = [d for d in build_contents if d.startswith("java-")]
+                if java_versions:
+                    print(f"   Found Java in build location {build_java_path}: {', '.join(java_versions)}")
+                    print(f"   RENDER_DISK_PATH is available: {os.path.exists(RENDER_DISK_PATH) and os.access(RENDER_DISK_PATH, os.W_OK)}")
+            except Exception as e:
+                print(f"   Could not list {build_java_path}: {e}")
 
 def get_java_version_from_pattern(mc_version):
     """Determine Java version based on Minecraft version pattern matching."""
