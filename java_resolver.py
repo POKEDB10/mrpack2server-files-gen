@@ -29,26 +29,44 @@ JAVA_VERSION_RULES = [
     (parse_version("1.0"), parse_version("1.15.999"), "8"),
 ]
 
-# Java installation base path - use /tmp/java for Render.com and Docker
-# This is the writable location where setup_java.sh installs Java
-JAVA_BASE_PATH = "/tmp/java"
+# Check for Render disk mount path (for persistent storage)
+# Use Render disk mount if available, otherwise use temp directory
+RENDER_DISK_PATH = os.environ.get("RENDER_DISK_PATH", "/opt/render/project/src/data")
+
+# Java installation base path - prioritize persistent storage on Render
+# Check RENDER_DISK_PATH first (persistent), then fallback to /tmp (ephemeral)
+if os.path.exists(RENDER_DISK_PATH) and os.access(RENDER_DISK_PATH, os.W_OK):
+    JAVA_BASE_PATH = os.path.join(RENDER_DISK_PATH, "java")
+else:
+    JAVA_BASE_PATH = "/tmp/java"
 
 # Fallback paths (for backwards compatibility and different environments)
-JAVA_FALLBACK_PATHS = [
+JAVA_FALLBACK_PATHS = []
+
+# Add Render disk path if it's different from primary (and exists)
+render_java_path = os.path.join(RENDER_DISK_PATH, "java")
+if render_java_path != JAVA_BASE_PATH and os.path.exists(RENDER_DISK_PATH) and os.access(RENDER_DISK_PATH, os.W_OK):
+    JAVA_FALLBACK_PATHS.append(render_java_path)
+
+# Add other fallback paths
+JAVA_FALLBACK_PATHS.extend([
     os.path.expanduser("~/java"),  # User home directory
     os.path.join(os.getcwd(), "java"),  # Current directory
-    "/opt/java",           # System directory (may be read-only)
-]
+    "/tmp/java",  # Temp directory (ephemeral)
+    "/opt/java",  # System directory (may be read-only)
+])
 
 def get_java_path(version):
-    """Get Java path, checking /tmp/java first (where setup_java.sh installs it)."""
-    # Primary path: /tmp/java (where setup_java.sh installs Java)
+    """Get Java path, checking persistent storage first (RENDER_DISK_PATH), then /tmp/java."""
+    # Primary path: Check JAVA_BASE_PATH first (prioritizes RENDER_DISK_PATH if available)
     primary_path = os.path.join(JAVA_BASE_PATH, f"java-{version}", "bin", "java")
     if os.path.exists(primary_path):
         return primary_path
     
-    # Check fallback paths
+    # Check fallback paths (including /tmp/java and RENDER_DISK_PATH)
     for base_path in JAVA_FALLBACK_PATHS:
+        if base_path == JAVA_BASE_PATH:
+            continue  # Skip if it's the same as primary path
         java_path = os.path.join(base_path, f"java-{version}", "bin", "java")
         if os.path.exists(java_path):
             return java_path
@@ -62,14 +80,16 @@ def get_java_path(version):
     return primary_path
 
 def is_java_installed(version):
-    """Check if Java is installed, checking /tmp/java first."""
-    # Primary path: /tmp/java
+    """Check if Java is installed, checking persistent storage first (RENDER_DISK_PATH), then /tmp/java."""
+    # Primary path: Check JAVA_BASE_PATH first (prioritizes RENDER_DISK_PATH if available)
     primary_path = os.path.join(JAVA_BASE_PATH, f"java-{version}", "bin", "java")
     if os.path.exists(primary_path):
         return True
     
-    # Check fallback paths
+    # Check fallback paths (including /tmp/java and RENDER_DISK_PATH)
     for base_path in JAVA_FALLBACK_PATHS:
+        if base_path == JAVA_BASE_PATH:
+            continue  # Skip if it's the same as primary path
         java_path = os.path.join(base_path, f"java-{version}", "bin", "java")
         if os.path.exists(java_path):
             return True
@@ -271,5 +291,10 @@ def resolve_java_version(loader_type, mc_version):
             error_msg += f"\n   Could not list {JAVA_BASE_PATH}: {e}"
     else:
         error_msg += f"\n   {JAVA_BASE_PATH} does not exist (Java may not have been installed during build)"
+    
+    # Also provide info about RENDER_DISK_PATH if it exists
+    render_java_path = os.path.join(RENDER_DISK_PATH, "java")
+    if render_java_path != JAVA_BASE_PATH and os.path.exists(RENDER_DISK_PATH):
+        error_msg += f"\n   RENDER_DISK_PATH: {RENDER_DISK_PATH} (exists: True, writable: {os.access(RENDER_DISK_PATH, os.W_OK)})"
     
     raise RuntimeError(error_msg)

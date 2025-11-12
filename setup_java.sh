@@ -1,14 +1,27 @@
 #!/bin/bash
 set -e
 
-# Use writable location - try /tmp first, fallback to project directory
-if [ -w "/tmp" ]; then
+# Check for Render disk mount path (for persistent storage)
+# Use Render disk mount if available, otherwise use temp directory
+RENDER_DISK_PATH="${RENDER_DISK_PATH:-/opt/render/project/src/data}"
+
+# Determine Java installation location (prioritize persistent storage)
+if [ -d "$RENDER_DISK_PATH" ] && [ -w "$RENDER_DISK_PATH" ]; then
+  # Use Render disk mount for persistent storage
+  JAVA_BASE="$RENDER_DISK_PATH/java"
+  echo "📦 Using persistent storage: $JAVA_BASE"
+elif [ -w "/tmp" ]; then
+  # Fallback to /tmp (ephemeral, but always writable)
   JAVA_BASE="/tmp/java"
+  echo "📦 Using temporary storage: $JAVA_BASE"
 elif [ -w "$HOME" ]; then
+  # Fallback to home directory
   JAVA_BASE="$HOME/java"
+  echo "📦 Using home directory: $JAVA_BASE"
 else
   # Last resort: use current directory
   JAVA_BASE="$(pwd)/java"
+  echo "📦 Using current directory: $JAVA_BASE"
 fi
 
 mkdir -p downloads
