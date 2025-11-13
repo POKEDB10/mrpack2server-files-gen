@@ -107,70 +107,57 @@ def debug_java_paths(version):
 
 def get_java_path(version):
     """Get Java path, checking persistent storage first (RENDER_DISK_PATH), then /tmp/java."""
-    # List of possible paths to check
-    possible_paths = [
-        # Standard path with bin/java
-        os.path.join(JAVA_BASE_PATH, f"java-{version}", "bin", "java"),
-        # Symlink might point directly to JRE/JDK with bin subdirectory
-        os.path.join(JAVA_BASE_PATH, f"java-{version}", "jre", "bin", "java"),
-        # Alternative JDK structure
-        os.path.join(JAVA_BASE_PATH, f"java-{version}", "jdk", "bin", "java"),
-    ]
+    # First check if the Java directory exists
+    java_dir = os.path.join(JAVA_BASE_PATH, f"java-{version}")
+    if not os.path.exists(java_dir):
+        # Check fallback paths
+        for base_path in JAVA_FALLBACK_PATHS:
+            java_dir = os.path.join(base_path, f"java-{version}")
+            if os.path.exists(java_dir):
+                break
+        else:
+            # Check old /opt location for backwards compatibility
+            if os.path.exists(f"/opt/java-{version}"):
+                java_dir = f"/opt/java-{version}"
+            else:
+                # Return expected path even if not found (for error messages)
+                return os.path.join(JAVA_BASE_PATH, f"java-{version}", "bin", "java")
     
-    # Check all possible paths
-    for java_path in possible_paths:
+    # Now look for the java executable in various possible locations
+    for bin_path in ["bin", "jre/bin", "jdk/bin"]:
+        java_path = os.path.join(java_dir, bin_path, "java")
         if os.path.exists(java_path) and os.access(java_path, os.X_OK):
             return java_path
     
-    # Check fallback paths
-    for base_path in JAVA_FALLBACK_PATHS:
-        if base_path == JAVA_BASE_PATH:
-            continue
-        for subpath in ["bin/java", "jre/bin/java", "jdk/bin/java"]:
-            java_path = os.path.join(base_path, f"java-{version}", subpath)
-            if os.path.exists(java_path) and os.access(java_path, os.X_OK):
-                return java_path
-    
-    # Fallback to old /opt/java-{version} location
-    old_path = f"/opt/java-{version}/bin/java"
-    if os.path.exists(old_path) and os.access(old_path, os.X_OK):
-        return old_path
-    
-    # Return expected path even if not found (for error messages)
-    return possible_paths[0]
+    # Return the first possible path if none found
+    return os.path.join(java_dir, "bin", "java")
 
 
 def is_java_installed(version):
     """Check if Java is installed, checking persistent storage first (RENDER_DISK_PATH), then /tmp/java."""
-    # List of possible paths to check
-    possible_paths = [
-        # Standard path with bin/java
-        os.path.join(JAVA_BASE_PATH, f"java-{version}", "bin", "java"),
-        # Symlink might point directly to JRE/JDK with bin subdirectory
-        os.path.join(JAVA_BASE_PATH, f"java-{version}", "jre", "bin", "java"),
-        # Alternative JDK structure
-        os.path.join(JAVA_BASE_PATH, f"java-{version}", "jdk", "bin", "java"),
-    ]
+    # First check if the Java directory exists
+    java_dir = os.path.join(JAVA_BASE_PATH, f"java-{version}")
+    if not os.path.exists(java_dir):
+        # Check fallback paths
+        for base_path in JAVA_FALLBACK_PATHS:
+            java_dir = os.path.join(base_path, f"java-{version}")
+            if os.path.exists(java_dir):
+                break
+        else:
+            # Check old /opt location for backwards compatibility
+            if os.path.exists(f"/opt/java-{version}"):
+                java_dir = f"/opt/java-{version}"
+            else:
+                return False
     
-    # Check all possible paths
-    for java_path in possible_paths:
+    # Now check for the java executable in various possible locations
+    for bin_path in ["bin", "jre/bin", "jdk/bin"]:
+        java_path = os.path.join(java_dir, bin_path, "java")
         if os.path.exists(java_path) and os.access(java_path, os.X_OK):
             return True
     
-    # Check fallback paths
-    for base_path in JAVA_FALLBACK_PATHS:
-        if base_path == JAVA_BASE_PATH:
-            continue
-        for subpath in ["bin/java", "jre/bin/java", "jdk/bin/java"]:
-            java_path = os.path.join(base_path, f"java-{version}", subpath)
-            if os.path.exists(java_path) and os.access(java_path, os.X_OK):
-                return True
-    
-    # Check old /opt location for backwards compatibility
-    if os.path.exists(f"/opt/java-{version}/bin/java"):
-        return True
-    
-    return False    
+    return False
+
 
 def _copy_java_to_persistent_storage():
     """Copy Java installations from Docker build location (/tmp/java) to persistent storage (RENDER_DISK_PATH/java)."""
