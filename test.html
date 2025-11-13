@@ -1,50 +1,1292 @@
-<!-- templates/logs.html -->
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Application Logs</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Minecraft Custom Domain Setup Guide</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+   <!-- WARNING: This source code is protected. Unauthorized copying or distribution is prohibited. -->
     <style>
-        body { font-family: monospace; background: #1e1e1e; color: #fff; margin: 20px; }
-        .log-line { padding: 2px 5px; border-bottom: 1px solid #333; }
-        .log-line:hover { background: #2a2a2a; }
-        .error { color: #ff6b6b; }
-        .warning { color: #ffa500; }
-        .info { color: #4dabf7; }
-        .pagination { margin: 20px 0; }
-        .pagination a { color: #4dabf7; margin: 0 10px; text-decoration: none; }
-        .pagination a:hover { text-decoration: underline; }
+        :root {
+            --bg-color-light: #f8fafc;
+            --text-color-light: #1f2937;
+            --header-color-light: #1d4ed8;
+            --subheader-color-light: #3b82f6;
+            --code-bg-light: #e5e7eb;
+            --note-bg-light: #fefcbf;
+            --note-border-light: #f59e0b;
+            --section-bg-light: #ffffff;
+            --list-icon-light: "🌐";
+            --accent-color: #3b82f6;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --bg-color-dark: #111827;
+            --text-color-dark: #e5e7eb;
+            --header-color-dark: #60a5fa;
+            --subheader-color-dark: #93c5fd;
+            --code-bg-dark: #1f2937;
+            --note-bg-dark: #374151;
+            --note-border-dark: #f97316;
+            --section-bg-dark: #1f2937;
+            --list-icon-dark: "🔗";
+        }
+        * {
+            box-sizing: border-box;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: var(--text-color-light);
+            margin: 0;
+            padding: 3rem 2rem;
+            line-height: 1.7;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+        body > * {
+            position: relative;
+            z-index: 1;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+            animation: backgroundShift 20s ease-in-out infinite;
+        }
+        @keyframes backgroundShift {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+        }
+        body.dark-mode {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: var(--text-color-dark);
+        }
+        body.dark-mode::before {
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(96, 165, 250, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 50%);
+        }
+        h1, h2, h3 {
+            font-weight: 700;
+            margin: 0;
+        }
+        h1 {
+            text-align: center;
+            background: linear-gradient(135deg, var(--header-color-light) 0%, var(--subheader-color-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 2.5rem;
+            margin-bottom: 3rem;
+            letter-spacing: -0.025em;
+            position: relative;
+            animation: titleFadeIn 1s ease-out;
+            transform: translateY(0);
+        }
+        @keyframes titleFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        body.dark-mode h1 {
+            background: linear-gradient(135deg, var(--header-color-dark) 0%, var(--subheader-color-dark) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        h2 {
+            color: var(--subheader-color-light);
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            padding-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        h2:hover {
+            transform: translateX(5px);
+        }
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-color), var(--subheader-color-light));
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        h2:hover::after {
+            width: 100px;
+        }
+        body.dark-mode h2 {
+            color: var(--subheader-color-dark);
+        }
+        h3 {
+            color: var(--header-color-light);
+            font-size: 1.25rem;
+            margin: 1.5rem 0 1rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        h3:hover {
+            transform: translateX(3px);
+            color: var(--subheader-color-light);
+        }
+        body.dark-mode h3 {
+            color: var(--header-color-dark);
+        }
+        body.dark-mode h3:hover {
+            color: var(--subheader-color-dark);
+        }
+        h4 {
+            color: var(--text-color-light);
+            font-size: 1.1rem;
+            margin: 1rem 0 0.5rem;
+            transition: all 0.3s ease;
+        }
+        h4:hover {
+            transform: translateX(3px);
+            color: var(--accent-color);
+        }
+        body.dark-mode h4 {
+            color: var(--text-color-dark);
+        }
+        pre {
+            background: linear-gradient(135deg, var(--code-bg-light) 0%, #d1d5db 100%);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 4px solid var(--header-color-light);
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            position: relative;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+        pre:hover {
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            border-left-width: 6px;
+        }
+        body.dark-mode pre {
+            background: linear-gradient(135deg, var(--code-bg-dark) 0%, #374151 100%);
+            border-left-color: var(--header-color-dark);
+        }
+        pre::before {
+            content: '📋';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            opacity: 0.7;
+            transition: all 0.3s ease;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+        pre:hover::before {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+        .note {
+            background: linear-gradient(135deg, var(--note-bg-light) 0%, #fde68a 100%);
+            border-left: 4px solid var(--note-border-light);
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        .note::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s;
+        }
+        .note:hover::before {
+            left: 100%;
+        }
+        .note:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+        }
+        body.dark-mode .note {
+            background: linear-gradient(135deg, var(--note-bg-dark) 0%, #4b5563 100%);
+            border-left-color: var(--note-border-dark);
+        }
+        .section {
+            background: var(--section-bg-light);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transform: translateY(40px) scale(0.95);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            z-index: 1;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .section.visible {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        .section:hover {
+            transform: translateY(-5px) scale(1.01);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+        }
+        body.dark-mode .section {
+            background: var(--section-bg-dark);
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+        ul {
+            list-style: none;
+            padding-left: 0;
+            margin: 1rem 0;
+        }
+        ul li {
+            position: relative;
+            padding-left: 2rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateX(-20px);
+            animation: listItemFadeIn 0.5s ease-out forwards;
+        }
+        @keyframes listItemFadeIn {
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        ul li:nth-child(1) { animation-delay: 0.1s; }
+        ul li:nth-child(2) { animation-delay: 0.2s; }
+        ul li:nth-child(3) { animation-delay: 0.3s; }
+        ul li:nth-child(4) { animation-delay: 0.4s; }
+        ul li:nth-child(5) { animation-delay: 0.5s; }
+        ul li:hover {
+            transform: translateX(10px);
+            color: var(--accent-color);
+        }
+        ul li::before {
+            content: var(--list-icon-light);
+            position: absolute;
+            left: 0;
+            top: 2px;
+            transition: all 0.3s ease;
+            animation: iconBounce 2s ease-in-out infinite;
+        }
+        @keyframes iconBounce {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.2) rotate(10deg); }
+        }
+        ul li:hover::before {
+            transform: scale(1.3) rotate(15deg);
+        }
+        body.dark-mode ul li::before {
+            content: var(--list-icon-dark);
+        }
+        code {
+            background: linear-gradient(135deg, var(--code-bg-light) 0%, #d1d5db 100%);
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            display: inline-block;
+            position: relative;
+        }
+        code:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        body.dark-mode code {
+            background: linear-gradient(135deg, var(--code-bg-dark) 0%, #374151 100%);
+        }
+        body.dark-mode canvas {
+            background-color: var(--code-bg-dark);
+            border-radius: 8px;
+        }
+        .toggle-btn {
+            position: relative;
+            overflow: hidden;
+        }
+        .toggle-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        .toggle-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        .toggle-btn:hover {
+            background: #2563eb;
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+        }
+        .toggle-btn:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+        body.dark-mode .toggle-btn {
+            background: #60a5fa;
+            color: #111827;
+        }
+        body.dark-mode .toggle-btn:hover {
+            background: #3b82f6;
+            box-shadow: 0 8px 20px rgba(96, 165, 250, 0.4);
+        }
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .popup-box {
+            background: var(--section-bg-light);
+            color: var(--text-color-light);
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 350px;
+            text-align: center;
+            font-size: 1rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            transform: scale(0.8);
+            animation: popupIn 0.3s ease forwards;
+        }
+        .popup-box button {
+            margin-top: 1.5rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--accent-color);
+            border: none;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .popup-box button:hover {
+            background: #2563eb;
+        }
+        body.dark-mode .popup-box {
+            background: var(--section-bg-dark);
+            color: var(--text-color-dark);
+        }
+        body.dark-mode .popup-box button {
+            background: #60a5fa;
+            color: #111827;
+        }
+        @keyframes popupIn {
+            to {
+                transform: scale(1);
+            }
+        }
+        .toggle-btn {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: linear-gradient(135deg, var(--accent-color) 0%, #2563eb 100%);
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            animation: buttonPulse 2s ease-in-out infinite;
+        }
+        @keyframes buttonPulse {
+            0%, 100% { box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+            50% { box-shadow: 0 4px 20px rgba(59, 130, 246, 0.5); }
+        }
+        .discord-btn {
+            position: fixed;
+            top: 1.5rem;
+            left: 1.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            color: white;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
+            text-decoration: none;
+            font-size: 1rem;
+            z-index: 1001;
+            box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        .discord-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        .discord-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        .discord-btn:hover {
+            background: linear-gradient(135deg, #4752c4 0%, #3c45a5 100%);
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 20px rgba(88, 101, 242, 0.4);
+        }
+        .discord-btn:active {
+            transform: translateY(-1px) scale(1.02);
+        }
+        .chart-container {
+            max-width: 100%;
+            width: 600px;
+            margin: 2rem auto;
+        }
+        @media (max-width: 768px) {
+            body {
+                padding: 2rem 1rem;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+            .section {
+                padding: 1.5rem;
+            }
+            .toggle-btn, .discord-btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+            .chart-container {
+                max-width: 100%;
+                width: 100%;
+            }
+        }
+        .code-chart-container {
+            max-width: 100%;
+            width: 400px;
+            margin: 2rem auto;
+        }
+        footer {
+            text-align: center;
+            margin-top: 4rem;
+            padding: 2rem;
+            font-size: 0.875rem;
+            color: var(--text-color-light);
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 0.5s forwards;
+            position: relative;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+        }
+        body.dark-mode footer {
+            color: #ffffff !important;
+        }
+        body.dark-mode footer::before {
+            background: linear-gradient(90deg, transparent, var(--header-color-dark), transparent);
+        }
+        .provider-logo {
+            height: 30px;
+            margin-right: 10px;
+            vertical-align: middle;
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+        .provider-logo:hover {
+            transform: scale(1.1) rotate(5deg);
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+        }
+        .provider-section {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        .provider-section:hover {
+            transform: translateX(5px);
+        }
+        .provider-section h3 {
+            margin: 0;
+        }
+        a {
+            color: #f59e0b;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #f59e0b, #f97316);
+            transition: width 0.3s ease;
+        }
+        a:hover::after {
+            width: 100%;
+        }
+        a:hover {
+            color: #f97316;
+            transform: translateY(-1px);
+        }
+        img {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 8px;
+        }
+        img:hover {
+            transform: scale(1.05) rotate(1deg);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+        ol li {
+            transition: all 0.3s ease;
+            padding: 0.5rem 0;
+            opacity: 0;
+            transform: translateX(-20px);
+            animation: listItemFadeIn 0.5s ease-out forwards;
+        }
+        ol li:nth-child(1) { animation-delay: 0.1s; }
+        ol li:nth-child(2) { animation-delay: 0.2s; }
+        ol li:nth-child(3) { animation-delay: 0.3s; }
+        ol li:nth-child(4) { animation-delay: 0.4s; }
+        ol li:nth-child(5) { animation-delay: 0.5s; }
+        ol li:nth-child(6) { animation-delay: 0.6s; }
+        ol li:nth-child(7) { animation-delay: 0.7s; }
+        ol li:hover {
+            transform: translateX(10px);
+            color: var(--accent-color);
+        }
+        p {
+            transition: all 0.3s ease;
+        }
+        p:hover {
+            transform: translateX(2px);
+        }
+        .chart-container, .code-chart-container {
+            opacity: 0;
+            transform: scale(0.95);
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .chart-container.visible, .code-chart-container.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
     </style>
 </head>
 <body>
-    <h1>Application Logs</h1>
-    <div class="pagination">
-        {% if page > 1 %}
-            <a href="?page={{ page - 1 }}">← Previous</a>
-        {% endif %}
-        
-        Page {{ page }} of {{ total_pages }} ({{ total_lines }} total lines)
-        
-        {% if page < total_pages %}
-            <a href="?page={{ page + 1 }}">Next →</a>
-        {% endif %}
-    </div>
-    
-    {% for line in lines %}
-        <div class="log-line {% if 'ERROR' in line %}error{% elif 'WARNING' in line %}warning{% elif 'INFO' in line %}info{% endif %}">
-            {{ line|safe }}
+    <a href="https://discord.gg/BHZrFX3C9B" target="_blank" class="discord-btn">
+        💬 Need Help? Join Discord
+    </a>
+    <button class="toggle-btn" onclick="document.body.classList.toggle('dark-mode'); setDarkModeCookie(document.body.classList.contains('dark-mode'))">
+        Toggle Dark Mode
+    </button>
+    <h1>🌐 Minecraft Custom Domain Setup Guide</h1>
+    <div class="section">
+        <h2>Introduction to Custom Domains</h2>
+        <p>A custom domain for your Minecraft server replaces the default IP address with a memorable, professional address (e.g., <code>play.yourserver.com</code> instead of <code>123.45.67.89:25565</code>). This guide provides comprehensive instructions for setting up custom domains using different hosting providers and methods.</p>
+        <div class="note">
+            <strong>Benefits of a Custom Domain:</strong><br>
+            - Professional appearance for your server<br>
+            - Easier for players to remember your address<br>
+            - Ability to create subdomains for different server modes<br>
+            - Improved branding and recognition
         </div>
-    {% endfor %}
-    
-    <div class="pagination">
-        {% if page > 1 %}
-            <a href="?page={{ page - 1 }}">← Previous</a>
-        {% endif %}
-        
-        Page {{ page }} of {{ total_pages }}
-        
-        {% if page < total_pages %}
-            <a href="?page={{ page + 1 }}">Next →</a>
-        {% endif %}
     </div>
+    <div class="section">
+        <h2>Why Use a Custom Domain?</h2>
+        <p>Using a custom domain for your Minecraft server offers significant advantages over using a raw IP address. Here's why it's worth the effort:</p>
+        <div class="note">
+            <strong>Key Benefits:</strong><br>
+            - <strong>Memorability:</strong> Players can easily remember <code>play.creativecraft.com</code> compared to a numeric IP address.<br>
+            - <strong>Professionalism:</strong> A custom domain makes your server appear more established and trustworthy.<br>
+            - <strong>Flexibility:</strong> Change your server's hosting provider without players needing to update their server list.<br>
+            - <strong>Subdomains:</strong> Create different addresses for different game modes (e.g., <code>survival.yourserver.com</code>, <code>pvp.yourserver.com</code>).<br>
+            - <strong>Port Hiding:</strong> Players don't need to remember or enter a port number.
+        </div>
+    </div>
+
+<div class="section">
+    <h2>Option 1: Manual Setup with Dynu.com</h2>
+    <p>Dynu.com offers free dynamic DNS services that allow you to create a custom domain for your Minecraft server. This method is ideal for server owners who want a cost-effective solution with full control over their DNS settings.</p>
+    
+    <div class="provider-section">
+        <img src="images/Dynu_logo.jpg" alt="Dynu Logo" class="provider-logo">
+        <h3>Creating a Dynu Account</h3>
+    </div>
+    <ol>
+        <li>Visit <a href="https://www.dynu.com/en-US/ControlPanel/CreateAccount" target="_blank" style="color: #f59e0b">Dynu Account Creation</a></li>
+        <li>Fill in your details and complete the registration process</li>
+        <li>Verify your email address</li>
+        <li>Log in to your new Dynu account</li>
+    </ol>
+    <div class="note">Dynu offers both free and premium plans. The free plan is sufficient for most Minecraft server owners.</div>
+    
+    <h3>Navigating to DDNS Services</h3>
+    <ol>
+        <li>After logging in, navigate to the <a href="https://www.dynu.com/en-US/ControlPanel" target="_blank" style="color: #f59e0b">Control Panel</a></li>
+        <li>Click on "DDNS Services" in the left menu</li>
+        <li>Click on "Add DDNS" to create a new hostname</li>
+    </ol>
+    
+    <h3>Choosing Your Domain Option</h3>
+    <p>You'll see two options for creating your hostname:</p>
+    
+    <div class="note">
+        <strong>Option 1: Use Our Domain Name</strong><br>
+        Choose this option if you don't own a domain name. Dynu provides free subdomains under their domains like accesscam.org.<br><br>
+        <strong>Option 2: Use Your Domain Name</strong><br>
+        Choose this option if you already own a domain name and want to use it with Dynu's DNS services.
+    </div>
+    
+    <h4>Option 1: Using Dynu's Domain</h4>
+    <ol>
+        <li>Select "Use Our Domain Name"</li>
+        <li>Enter your desired hostname in the "Host" field (e.g., <code>myserver</code>)</li>
+        <li>Select a top-level domain from the dropdown (e.g., <code>accesscam.org</code>)</li>
+        <li>Your full domain will be <code>myserver.accesscam.org</code></li>
+        <li>Click "Add" to create your domain</li>
+    </ol>
+    
+    <h4>Option 2: Using Your Own Domain</h4>
+    <ol>
+        <li>Select "Use Your Domain Name"</li>
+        <li>Enter your domain name in the "Domain Name" field (e.g., <code>mydomain.com</code>)</li>
+        <li>Click "Add" to create your domain</li>
+    </ol>
+    
+    <h3>Configuring IP Address Settings</h3>
+    <ol>
+        <li>After adding your domain, you'll be taken to the IP configuration page</li>
+        <li><strong>Important:</strong> Remove the IP address in the IPv4 address field and leave it blank</li>
+        <li>Click "Save" to save your changes</li>
+    </ol>
+        <div style="text-align: center; margin: 20px 0;">
+        <img src="images/Ipv4_empty.png" alt="Blank IPV4 Adress" style="max-width: 100%; border: 1px solid #ccc; border-radius: 8px;">
+    </div>
+    <div class="note">Leaving the IP address blank allows us to create custom A records later, which is essential for proper Minecraft server configuration.</div>
+    
+    <h3>Creating A Records</h3>
+    <p>Now you'll create an A record to point your domain to your server's IP address:</p>
+    
+    <h4>If Using Eternal Hosting:</h4>
+    <p>Use one of the following numerical IP addresses based on your server location:</p>
+    <pre>Canada Server: 51.79.96.45
+Finland Server: 37.27.49.121</pre>
+    
+    <ol>
+        <li>In the Dynu Control Panel, navigate to "DNS" for your domain</li>
+        <li>Click "Add" to create a new record</li>
+        <li>Select "A" as the record type</li>
+        <li>Leave the "Host" field empty or enter "@" for the root domain</li>
+        <li>Enter the appropriate Eternal Hosting IP address in the "Points to" field</li>
+        <li>Set TTL to 60 (or leave default)</li>
+        <li>Click "Save"</li>
+    </ol>
+    
+    <h4>If Using Other Hosting Providers:</h4>
+    <ol>
+        <li>Find your server's numerical IP address using <a href="https://www.nslookup.io/" target="_blank" style="color: #f59e0b">DNS Lookup</a></li>
+        <li>In the Dynu Control Panel, navigate to "DNS" for your domain</li>
+        <li>Click "Add" to create a new record</li>
+        <li>Select "A" as the record type</li>
+        <li>Leave the "Host" field empty or enter "@" for the root domain</li>
+        <li>Enter your server's numerical IP address in the "Points to" field</li>
+        <li>Set TTL to 60 (or leave default)</li>
+        <li>Click "Save"</li>
+    </ol>
+    
+    <h3>Creating SRV Records</h3>
+    <p>SRV records allow players to connect to your server without specifying a port number:</p>
+    <ol>
+        <li>In the Dynu Control Panel, navigate to "DNS" for your domain</li>
+        <li>Click "Add" to create a new record</li>
+        <li>Select "SRV" as the record type</li>
+        <li>Enter the following values:
+            <ul>
+                <li><strong>Node Name:</strong> <code>_minecraft.tcp_</code></li>
+                <li><strong>Port:</strong> Your Minecraft server port (default is 25565)</li>
+                <li><strong>Weight:</strong> <code>5</code></li>
+                <li><strong>Priority:</strong> <code>0</code></li>
+                <li><strong>TTL:</strong> <code>120</code> </li>
+                <li><strong>Target:</strong> Your domain name (e.g., <code>myserver.accesscam.org</code>)</li>
+            </ul>
+        </li>
+        <li>Click "Save"</li>
+    </ol>
+    
+    <div style="text-align: center; margin: 20px 0;">
+        <img src="images/srv-record-example.png" alt="SRV Record Setup Example" style="max-width: 100%; border: 1px solid #ccc; border-radius: 8px;">
+        <p><em>Example of an SRV record configuration form. Fill in the fields as described above.</em></p>
+    </div>
+    
+    <div class="note">The SRV record tells Minecraft clients which port to connect to when they use your domain name, so players don't need to specify the port manually.</div>
+    
+    <h3>Connecting to Your Minecraft Server</h3>
+    <p>Players can now connect to your server using your custom domain:</p>
+    <pre>myserver.accesscam.org</pre>
+    <p>Or if using your own domain:</p>
+    <pre>mydomain.com</pre>
+    <div class="note">DNS changes may take up to 24 hours to propagate, but typically take only a few minutes. Test your domain by attempting to connect to it yourself before sharing it with players.</div>
+</div>
+    
+    <div class="section">
+        <h2>Option 2: Automatic Setup with Shockbyte</h2>
+        <p>Shockbyte offers a simple subdomain creator that allows you to quickly set up a custom domain for your Minecraft server. This method is ideal for server owners who want an easy, no-cost solution.</p>
+        <div class="provider-section">
+            <img src="images/shockbyte_logo.png" alt="Shockbyte Logo" class="provider-logo">
+            <h3>Creating a Subdomain with Shockbyte</h3>
+        </div>
+        
+        <h3>Using the Subdomain Creator</h3>
+        <ol>
+            <li>Visit the <a href="https://shockbyte.com/subdomain-creator" target="_blank" style="color: #f59e0b">Shockbyte Subdomain Creator</a></li>
+            <li>Fill in the following details:
+                <ul>
+                    <li><strong>Email:</strong> Enter your email address (e.g., <code>example@gmail.com</code>)</li>
+                    <li><strong>Service Type:</strong> Select <code>Minecraft</code> from the dropdown</li>
+                    <li><strong>Server IP:</strong> Enter your server's numerical IP address:
+                        <div class="note">
+                            <strong>For Eternal Hosting:</strong><br>
+                            • Canada Server: <code>51.79.96.45</code><br>
+                            • Finland Server: <code>37.27.49.121</code><br><br>
+                            <strong>For Other Hosting Providers:</strong><br>
+                            Use <a href="https://www.nslookup.io/" target="_blank" style="color: #f59e0b">DNS Lookup</a> to find your server's numerical IP address.
+                        </div>
+                    </li>
+                    <li><strong>Port:</strong> Enter your server's port (default: <code>25565</code>)</li>
+                    <li><strong>Server Name:</strong> Enter your desired server name (e.g., <code>myserver</code>)</li>
+                    <li><strong>Zone/Domain:</strong> Select any available domain from the dropdown (e.g., <code>.mc-game.xyz</code>)</li>
+                </ul>
+            </li>
+            <li>Your new subdomain will be displayed as <code>myserver.mc-srv.com</code></li>
+            <li><strong>Complete the CAPTCHA:</strong> Solve the CAPTCHA challenge to verify you're not a robot</li>
+            <li>Click the <strong>Create</strong> button to finalize your subdomain</li>
+        </ol>
+            <div style="text-align: center; margin: 20px 0;">
+        <img src="images/Shockbyte_setup.png" alt="SRV Record Setup Example" style="max-width: 100%; border: 1px solid #ccc; border-radius: 8px;">
+        <p><em>Example of an Shockbyte configuration. Fill in the fields as described above.</em></p>
+    </div>
+        <div class="note">The subdomain creator will automatically configure all necessary DNS records for your Minecraft server, including SRV records for port forwarding.</div>
+        
+        <h3>Available Domain Options</h3>
+        <p>The dropdown menu in the Zone/Domain field includes several domain options you can choose from, such as:</p>
+        <ul>
+            <li><code>.minecraft-server.pro</code></li>
+            <li><code>.mc-game.xyz, etc</code></li>
+        </ul>
+        <p>Simply select the domain you prefer from the dropdown menu. For example, if you choose <code>.mc-game.xyz</code> and enter <code>myserver</code> as your server name, your final subdomain will be <code>myserver.mc-game.xyz/code>.</p>
+        
+        <h3>Connecting to Your Minecraft Server</h3>
+        <p>Players can now connect to your server using your new subdomain:</p>
+        <pre>myserver.mc-game.xyz</pre>
+        <div class="note">Shockbyte automatically handles port forwarding, so players don't need to specify the port number. The subdomain should be active immediately after creation.</div>
+
+    </div>
+    
+    <div class="section">
+        <h2>Option 3: Other Hosting Providers</h2>
+        <p>In addition to Dynu.com and Shockbyte, you can also use other hosting providers like Elixernode for setting up custom domains for your Minecraft server. The process for Elixernode is similar to Shockbyte's subdomain creator, where you can easily configure a custom domain through their control panel.</p>
+        
+        <div class="note">
+            <strong>Elixernode:</strong><br>
+            If you choose to use Elixernode, the setup process is very similar to Shockbyte's method. You'll need to create an account, select your server, and use their domain management tools to set up your custom domain. The general steps involve entering your server details and selecting a domain or subdomain option provided by Elixernode.
+        </div>
+        
+        <h3>General Process for Most Hosting Providers</h3>
+        <p>Most Minecraft hosting providers offer similar domain setup processes:</p>
+        <ol>
+            <li>Create an account with the hosting provider</li>
+            <li>Select or set up your Minecraft server</li>
+            <li>Navigate to the domain or DNS management section</li>
+            <li>Enter your desired domain name or select from available subdomains</li>
+            <li>Configure any necessary DNS records (usually handled automatically)</li>
+            <li>Save your changes and wait for propagation</li>
+        </ol>
+        
+        <div class="note">While the specific interface may vary between providers, the fundamental steps remain consistent across most Minecraft hosting services.</div>
+        
+        <div class="note">Each provider has its own strengths, so choose the one that best fits your specific needs and budget.</div>
+    </div>
+    
+    <div class="section">
+        <h2>Troubleshooting Common Issues</h2>
+        <ul>
+            <li><strong>Domain not resolving:</strong> Check your DNS records and ensure they're correctly configured. Use tools like <a href="https://www.nslookup.io/" target="_blank" style="color: #f59e0b">DNS Lookup</a> to verify your records.</li>
+            <li><strong>Connection timeout:</strong> Ensure your server is running and that you've correctly set up port forwarding on your router (if hosting from home).</li>
+            <li><strong>SRV record not working:</strong> Double-check that your SRV record is correctly formatted and that your A record is pointing to the right IP address.</li>
+            <li><strong>Domain works with IP but not domain:</strong> This is usually a DNS issue. Wait 24-48 hours for DNS propagation and check your records again.</li>
+            <li><strong>SSL/HTTPS errors:</strong> These don't affect Minecraft connections, as Minecraft doesn't use HTTPS for server connections.</li>
+        </ul>
+        <div class="note">If you're still having issues, check your server console for error messages and consult your hosting provider's support documentation.</div>
+    </div>
+    
+    <div class="section">
+        <h2>Security Best Practices</h2>
+        <ul>
+            <li><strong>Use strong passwords:</strong> Protect your domain registrar and hosting accounts with strong, unique passwords.</li>
+            <li><strong>Enable two-factor authentication:</strong> Add an extra layer of security to your accounts.</li>
+            <li><strong>Regularly update your server:</strong> Keep your Minecraft server software up to date to protect against security vulnerabilities.</li>
+            <li><strong>Monitor your domain:</strong> Use domain monitoring services to alert you if your domain goes down.</li>
+            <li><strong>Backup your configurations:</strong> Keep backups of your DNS settings and server configurations.</li>
+        </ul>
+        <div class="note">Consider using a DDoS protection service if you're hosting a popular server to prevent attacks.</div>
+    </div>
+    
+    <div class="section contribution">
+        <h2 class="section-title">🤝 Contributors</h2>
+        <ul class="contributor-list">
+            <li><span class="contributor-name">PokeDB</span>: Developed and designed the website</li>
+            <li><span class="contributor-name">Alino10</span>: Provided creative ideas and invaluable support</li>
+        </ul>
+    </div>
+    
+    <div class="section">
+        <h2>📊 Domain Setup Effort Breakdown</h2>
+        <div class="chart-container">
+            <canvas id="domainBreakdownChart"></canvas>
+        </div>
+        <p>This chart illustrates the estimated effort required for each step in setting up a custom domain for your Minecraft server, highlighting the differences between manual and automatic setup methods.</p>
+    </div>
+    
+    <div class="section">
+        <h2>📊 Setup Method Comparison</h2>
+        <div class="code-chart-container">
+            <canvas id="methodComparisonChart"></canvas>
+        </div>
+        <p>This chart compares the different domain setup methods based on cost, control, and ease of use to help you choose the best option for your Minecraft server.</p>
+    </div>
+    
+    <script>
+        // Domain Setup Effort Breakdown Chart
+        const domainCtx = document.getElementById('domainBreakdownChart').getContext('2d');
+        const domainChart = new Chart(domainCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Account Creation', 'Domain Configuration', 'DNS Setup', 'Server Connection', 'Troubleshooting'],
+                datasets: [
+                    {
+                        label: 'Dynu.com (Free)',
+                        data: [14, 27, 32, 9, 18],
+                        backgroundColor: '#3b82f6',
+                        borderWidth: 1,
+                        borderRadius: 8
+                    },
+                    {
+                        label: 'Shockbyte (Free)',
+                        data: [0, 33, 17, 17, 33],
+                        backgroundColor: '#10b981',
+                        borderWidth: 1,
+                        borderRadius: 8
+                    },
+                    {
+                        label: 'Elixernode (Free)',
+                        data: [0, 33, 22, 11, 33],
+                        backgroundColor: '#8b5cf6',
+                        borderWidth: 1,
+                        borderRadius: 8
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 40,
+                        title: {
+                            display: true,
+                            text: 'Effort',
+                            color: document.body.classList.contains('dark-mode') ? '#e5e7eb' : '#1f2937',
+                            font: {
+                                size: 14,
+                                weight: '600'
+                            }
+                        },
+                        ticks: {
+                            color: document.body.classList.contains('dark-mode') ? '#e5e7eb' : '#1f2937',
+                            callback: function(value) {
+                                return value + ' %';
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            color: document.body.classList.contains('dark-mode') ? '#e5e7eb' : '#1f2937',
+                            autoSkip: false,
+                            maxRotation: 30,
+                            minRotation: 30
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y + '%';
+                                }
+                                return label;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'top',
+                        formatter: (value) => {
+                            return value + '%';
+                        },
+                        color: document.body.classList.contains('dark-mode') ? '#e5e7eb' : '#1f2937',
+                        font: {
+                            weight: 'bold',
+                            size: 12
+                        }
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 14
+                            },
+                            padding: 20
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Free Domain Setup Effort Comparison',
+                        color: document.body.classList.contains('dark-mode') ? '#e5e7eb' : '#1f2937',
+                        font: {
+                            size: 16,
+                            weight: '600'
+                        },
+                        padding: {
+                            bottom: 20
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutQuart'
+                }
+            },
+            plugins: [ChartDataLabels]
+        });
+        
+        // Setup Method Comparison Chart
+        const methodCtx = document.getElementById('methodComparisonChart').getContext('2d');
+        const methodChart = new Chart(methodCtx, {
+            type: 'radar',
+            data: {
+                labels: ['Free?', 'Ease of Use', 'Customization', 'Setup Speed', 'Reliability'],
+                datasets: [
+                    {
+                        label: 'Dynu.com (Free)',
+                        data: [100, 35, 90, 40, 75],
+                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                        borderColor: '#3b82f6',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#3b82f6'
+                    },
+                    {
+                        label: 'Shockbyte (Free)',
+                        data: [100, 90, 50, 95, 85],
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        borderColor: '#10b981',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#10b981'
+                    },
+                    {
+                        label: 'Elixernode (Free)',
+                        data: [100, 80, 65, 85, 80],
+                        backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                        borderColor: '#8b5cf6',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#8b5cf6'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            stepSize: 20,
+                            color: document.body.classList.contains('dark-mode') ? '#e5e7eb' : '#1f2937',
+                            backdropColor: 'transparent'
+                        },
+                        grid: {
+                            color: document.body.classList.contains('dark-mode') ? 'rgba(229, 231, 235, 0.1)' : 'rgba(31, 41, 55, 0.1)'
+                        },
+                        angleLines: {
+                            color: document.body.classList.contains('dark-mode') ? 'rgba(229, 231, 235, 0.1)' : 'rgba(31, 41, 55, 0.1)'
+                        },
+                        pointLabels: {
+                            color: document.body.classList.contains('dark-mode') ? '#e5e7eb' : '#1f2937',
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: {
+                                size: 14
+                            },
+                            padding: 20
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: 'Free Setup Method Comparison (0-100 scale)',
+                        color: document.body.classList.contains('dark-mode') ? '#e5e7eb' : '#1f2937',
+                        font: {
+                            size: 16,
+                            weight: '600'
+                        },
+                        padding: {
+                            bottom: 20
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutQuart'
+                }
+            }
+        });
+        
+        // Dark mode toggle functionality
+        function setDarkModeCookie(isDark) {
+            document.cookie = "darkMode=" + (isDark ? "true" : "false") + ";path=/;max-age=" + (30 * 24 * 60 * 60);
+        }
+        
+        function getDarkModeCookie() {
+            return document.cookie.split(';').some((item) => item.trim().startsWith('darkMode=true'));
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggleBtn = document.querySelector('.toggle-btn');
+            
+            if (getDarkModeCookie()) {
+                document.body.classList.add('dark-mode');
+                toggleBtn.textContent = 'Toggle Light Mode';
+            } else {
+                toggleBtn.textContent = 'Toggle Dark Mode';
+            }
+            
+            // Update chart colors based on dark mode
+            const updateChartColors = () => {
+                const textColor = document.body.classList.contains('dark-mode') ? '#e5e7eb' : '#1f2937';
+                
+                // Update domain chart colors
+                domainChart.options.scales.y.title.color = textColor;
+                domainChart.options.scales.y.ticks.color = textColor;
+                domainChart.options.scales.x.ticks.color = textColor;
+                domainChart.options.plugins.title.color = textColor;
+                domainChart.options.plugins.datalabels.color = textColor;
+                domainChart.update();
+                
+                // Update method chart colors
+                methodChart.options.scales.r.ticks.color = textColor;
+                methodChart.options.scales.r.pointLabels.color = textColor;
+                methodChart.options.plugins.title.color = textColor;
+                methodChart.update();
+            };
+            
+            // Initial color update
+            updateChartColors();
+            
+            // Add event listener to toggle button
+            toggleBtn.addEventListener('click', () => {
+                if (document.body.classList.contains('dark-mode')) {
+                    setDarkModeCookie(true);
+                } else {
+                    setDarkModeCookie(false);
+                }
+                
+                updateChartColors();
+                
+                toggleBtn.textContent = document.body.classList.contains('dark-mode') ? 
+                    'Toggle Light Mode' : 'Toggle Dark Mode';
+            });
+        });
+        
+        // Copy to clipboard functionality for code blocks
+        document.addEventListener('DOMContentLoaded', () => {
+            const codeBlocks = document.querySelectorAll('pre');
+            
+            codeBlocks.forEach(block => {
+                block.addEventListener('click', () => {
+                    const text = block.textContent.trim();
+                    
+                    navigator.clipboard.writeText(text).then(() => {
+                        const originalText = block.textContent;
+                        block.style.transform = 'scale(0.95)';
+                        block.textContent = '✅ Copied!';
+                        
+                        setTimeout(() => {
+                            block.textContent = originalText;
+                            block.style.transform = '';
+                        }, 2000);
+                    });
+                });
+            });
+            
+            // Scroll-triggered animations using Intersection Observer
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, observerOptions);
+            
+            // Observe all sections
+            const sections = document.querySelectorAll('.section');
+            sections.forEach((section, index) => {
+                section.style.animationDelay = `${index * 0.1}s`;
+                // Make first section visible immediately
+                if (index === 0) {
+                    section.classList.add('visible');
+                } else {
+                    observer.observe(section);
+                }
+            });
+            
+            // Animate charts when they come into view
+            const chartObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        const canvas = entry.target.querySelector('canvas');
+                        if (canvas) {
+                            canvas.style.animation = 'fadeInScale 0.8s ease-out forwards';
+                        }
+                        chartObserver.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.3 });
+            
+            const chartContainers = document.querySelectorAll('.chart-container, .code-chart-container');
+            chartContainers.forEach(container => {
+                chartObserver.observe(container);
+            });
+        });
+        
+        // Add fade in scale animation for charts
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInScale {
+                from {
+                    opacity: 0;
+                    transform: scale(0.9);
+                }
+                to {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>   
+    
+    <footer>
+        <p style="text-align: center; margin-top: 2rem; font-size: 0.875rem;">
+            &copy; 2025 Minecraft Custom Domain Setup Guide. All rights reserved.
+        </p>
+    </footer>
 </body>
 </html>

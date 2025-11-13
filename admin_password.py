@@ -12,4 +12,4 @@ hashed = "$2b$12$p3y95mm7gWgQ64jfzXjDCub2jCTYFL7luYEu/2F0jDfy1pWD8Ax5i"  # Repla
 if bcrypt.checkpw(password.encode(), hashed.encode()):
     print("Credentials are valid")
 else:
-    print("Credentials are invalid")
+    print("Credentials are invalid")        
