@@ -1,4 +1,22 @@
 #!/bin/bash
+set -e
+
+echo "🔧 Setting up Java symlinks..."
+
+# Create /tmp/java directory and symlinks to system Java installations
+mkdir -p /tmp/java
+
+# Create symlinks if they don't exist
+[ ! -e /tmp/java/java-8 ] && ln -sf /usr/lib/jvm/java-8-openjdk-amd64 /tmp/java/java-8
+[ ! -e /tmp/java/java-11 ] && ln -sf /usr/lib/jvm/java-11-openjdk-amd64 /tmp/java/java-11
+[ ! -e /tmp/java/java-17 ] && ln -sf /usr/lib/jvm/java-17-openjdk-amd64 /tmp/java/java-17
+[ ! -e /tmp/java/java-21 ] && ln -sf /usr/lib/jvm/java-21-openjdk-amd64 /tmp/java/java-21
+
+# Verify Java installations
+echo "✅ Java 8: $(test -x /tmp/java/java-8/bin/java && echo 'OK' || echo 'MISSING')"
+echo "✅ Java 11: $(test -x /tmp/java/java-11/bin/java && echo 'OK' || echo 'MISSING')"
+echo "✅ Java 17: $(test -x /tmp/java/java-17/bin/java && echo 'OK' || echo 'MISSING')"
+echo "✅ Java 21: $(test -x /tmp/java/java-21/bin/java && echo 'OK' || echo 'MISSING')"
 
 # Calculate optimal Gunicorn workers (recommended: 2*CPUs + 1)
 # For free tier, limit workers to avoid memory issues
