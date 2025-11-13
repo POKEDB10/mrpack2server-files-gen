@@ -57,36 +57,76 @@ JAVA_FALLBACK_PATHS.extend([
 ])
 
 
-def is_java_installed(version):
-    """Check if Java is installed, checking persistent storage first (RENDER_DISK_PATH), then /tmp/java."""
-    # First check if Java directory exists
-    java_dir = os.path.join(JAVA_BASE_PATH, f"java-{version}")
-    if not os.path.exists(java_dir):
-        # Check fallback paths
-        for base_path in JAVA_FALLBACK_PATHS:
-            java_dir = os.path.join(base_path, f"java-{version}")
-            if os.path.exists(java_dir):
-                break
-        else:
-            # Check old /opt location for backwards compatibility
-            if os.path.exists(f"/opt/java-{version}"):
-                java_dir = f"/opt/java-{version}"
+def debug_java_paths(version):
+    """Debug function to see what's actually in Java directories."""
+    base_path = os.path.join(JAVA_BASE_PATH, f"java-{version}")
+    print(f"\n🔍 Debugging Java {version} at {base_path}")
+    
+    if os.path.exists(base_path):
+        print(f"  ✅ Directory exists")
+        
+        # Check if it's a symlink
+        if os.path.islink(base_path):
+            target = os.readlink(base_path)
+            print(f"  🔗 Symlink points to: {target}")
+            
+            # Check if target exists
+            if os.path.exists(target):
+                print(f"  ✅ Symlink target exists")
+                
+                # List contents of target
+                try:
+                    contents = os.listdir(target)
+                    print(f"  📁 Target contents: {', '.join(contents[:10])}")  # First 10 items
+                    
+                    # Check for bin directory
+                    bin_path = os.path.join(target, "bin")
+                    if os.path.exists(bin_path):
+                        print(f"  ✅ bin/ directory exists")
+                        bin_contents = os.listdir(bin_path)
+                        print(f"  📁 bin/ contents: {', '.join(bin_contents[:10])}")
+                        
+                        # Check for java executable
+                        java_path = os.path.join(bin_path, "java")
+                        if os.path.exists(java_path):
+                            print(f"  ✅ java executable exists at {java_path}")
+                            print(f"  🔐 Executable: {os.access(java_path, os.X_OK)}")
+                        else:
+                            print(f"  ❌ java executable NOT found at {java_path}")
+                    else:
+                        print(f"  ❌ bin/ directory NOT found")
+                except Exception as e:
+                    print(f"  ❌ Error listing contents: {e}")
             else:
-                return False
-    
-    # Now check for the java executable - be more thorough
-    # Check all possible locations within the Java directory
-    possible_executables = [
-        os.path.join(java_dir, "bin", "java"),
-        os.path.join(java_dir, "jre", "bin", "java"),
-        os.path.join(java_dir, "jdk", "bin", "java"),
-    ]
-    
-    for java_path in possible_executables:
-        if os.path.exists(java_path) and os.access(java_path, os.X_OK):
-            return True
-    
-    return False
+                print(f"  ❌ Symlink target does NOT exist")
+        else:
+            print(f"  📁 Regular directory (not a symlink)")
+            
+            # List contents of the directory
+            try:
+                contents = os.listdir(base_path)
+                print(f"  📁 Directory contents: {', '.join(contents[:10])}")  # First 10 items
+                
+                # Check for bin directory
+                bin_path = os.path.join(base_path, "bin")
+                if os.path.exists(bin_path):
+                    print(f"  ✅ bin/ directory exists")
+                    bin_contents = os.listdir(bin_path)
+                    print(f"  📁 bin/ contents: {', '.join(bin_contents[:10])}")
+                    
+                    # Check for java executable
+                    java_path = os.path.join(bin_path, "java")
+                    if os.path.exists(java_path):
+                        print(f"  ✅ java executable exists at {java_path}")
+                        print(f"  🔐 Executable: {os.access(java_path, os.X_OK)}")
+                    else:
+                        print(f"  ❌ java executable NOT found at {java_path}")
+                else:
+                    print(f"  ❌ bin/ directory NOT found")
+            except Exception as e:
+                print(f"  ❌ Error listing contents: {e}")
+    else:
+        print(f"  ❌ Directory does NOT exist")
 
 
 def get_java_path(version):
