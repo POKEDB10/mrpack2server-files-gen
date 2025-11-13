@@ -180,6 +180,16 @@ def is_java_installed(version):
         if os.path.exists(java_path) and os.access(java_path, os.X_OK):
             return True
     
+    # Try to find java executable using a more comprehensive search
+    try:
+        for root, dirs, files in os.walk(java_dir):
+            if "java" in files:
+                java_path = os.path.join(root, "java")
+                if os.access(java_path, os.X_OK):
+                    return True
+    except Exception:
+        pass
+    
     return False
 
 
@@ -267,6 +277,7 @@ def _copy_java_to_persistent_storage():
         print(f"⚠️ Failed to copy Java to persistent storage: {e}")
         return False
 
+
 def log_installed_java_versions():
     """Log all installed Java versions with their paths.
     Also attempts to copy Java from build location to persistent storage if needed."""
@@ -313,6 +324,7 @@ def log_installed_java_versions():
                     print(f"   RENDER_DISK_PATH is available: {os.path.exists(RENDER_DISK_PATH) and os.access(RENDER_DISK_PATH, os.W_OK)}")
             except Exception as e:
                 print(f"   Could not list {build_java_path}: {e}")
+
 
 def get_java_version_from_pattern(mc_version):
     """Determine Java version based on Minecraft version pattern matching."""
@@ -402,6 +414,7 @@ def resolve_java_version(loader_type, mc_version):
     # DEBUG: Check what's actually in /tmp/java
     for v in ["8", "11", "17", "21"]:
         debug_java_paths(v)
+    
     # Step 1: Try exact match in hardcoded map (fastest, most reliable)
     mapped = JAVA_VERSION_MAP.get(loader_type, {}).get(mc_version)
     if mapped:
