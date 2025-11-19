@@ -4,7 +4,7 @@ services:
     name: M2SFG
     runtime: docker
     plan: free
-    region: frankfurt
+    region: oregon
     repo: https://github.com/POKEDB10/mrpack2server-files-gen
     
     # Docker runtime uses the Dockerfile, so we don't need build/start commands here.
