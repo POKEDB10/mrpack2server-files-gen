@@ -1,24 +1,19 @@
 services:
   - type: web
     name: mrpack2server-files-gen
-    env: python
+    env: docker  # <--- CHANGED FROM 'python' TO 'docker'
     plan: free
     region: oregon
-    buildCommand: |
-      pip install --upgrade pip && 
-      pip install -r requirements.txt && 
-      bash setup_java.sh
-    startCommand: bash start.sh
+    # Build command is irrelevant for Docker (it uses the Dockerfile)
+    # Start command is defined in the Dockerfile
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.2
       - key: PORT
         value: 8090
       - key: PRIMARY_WORKER
         value: 1
       - key: SECRET_KEY
         generateValue: true
-    healthCheckPath: /health
+    healthCheckPath: /
     disk:
       name: server-storage
       mountPath: /opt/render/project/src/data
