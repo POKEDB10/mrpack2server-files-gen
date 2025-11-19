@@ -1,11 +1,15 @@
+version: "1"
 services:
   - type: web
-    name: mrpack2server-files-gen
-    env: docker  # <--- CHANGED FROM 'python' TO 'docker'
+    name: M2SFG
+    runtime: docker
     plan: free
     region: oregon
-    # Build command is irrelevant for Docker (it uses the Dockerfile)
-    # Start command is defined in the Dockerfile
+    repo: https://github.com/POKEDB10/mrpack2server-files-gen
+    
+    # Docker runtime uses the Dockerfile, so we don't need build/start commands here.
+    # The Dockerfile handles installing Java and running start.sh.
+
     envVars:
       - key: PORT
         value: 8090
@@ -13,8 +17,6 @@ services:
         value: 1
       - key: SECRET_KEY
         generateValue: true
+    
+    # Health check to ensure the app is running before traffic is sent
     healthCheckPath: /
-    disk:
-      name: server-storage
-      mountPath: /opt/render/project/src/data
-      sizeGB: 1
