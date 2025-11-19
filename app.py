@@ -57,14 +57,11 @@ CLEANUP_DELAY = 300  # 5 minutes
 MAX_RETRIES = 3
 LOCK_TIMEOUT = 5
 MIN_INSTALLER_SIZE = 1000  # bytes
-MIN_DISK_SPACE = 1 * 1024**3  # 1GB
-MIN_MEMORY = 512 * 1024**2  # 512MB
+
 DEFAULT_INSTALLER_TIMEOUT = 300  # 5 minutes
 NEOFORGE_TIMEOUT = 900  # 15 minutes
 NO_OUTPUT_TIMEOUT = 300  # 5 minutes
-MAX_WORKERS_DOWNLOAD = 16  # Reduced from 32 for better resource management
-MAX_WORKERS_COPY = 8  # Reduced from 16
-CHUNK_SIZE = 8192  # 8KB chunks for downloads
+CHUNK_SIZE = 8192  # 8KB chunks
 
 # Flask app initialization
 app = Flask(__name__)
@@ -74,6 +71,39 @@ app.config['MAX_CONTENT_LENGTH'] = MAX_UPLOAD_SIZE
 # Thread-local storage for request_id tracking (must be defined before WebLogHandler)
 _thread_local = local()
 
+
+# --- DYNAMIC CONFIGURATION ---
+# Check if running on Render.com (Render sets this env var automatically)
+IS_RENDER = os.environ.get("RENDER") is not None
+
+if IS_RENDER:
+    # Settings for Render Free Tier (512MB RAM, 1GB Disk)
+    logging.info("☁️ Detected Render Environment: Applying low-resource mode")
+    
+    # Memory: Check for 200MB free (allows running on 512MB instance)
+    MIN_MEMORY = 200 * 1024**2  
+    
+    # Disk: Check for 300MB free (Lowered from 1GB to fit within the limit)
+    # This prevents the app from blocking generation if the OS uses some space
+    MIN_DISK_SPACE = 300 * 1024**2
+    
+    # Workers: Reduced to prevent Out-Of-Memory crashes
+    MAX_WORKERS_DOWNLOAD = 4   
+    MAX_WORKERS_COPY = 2       
+    
+    # Java: Cap at 350MB heap to prevent OOM Kill (leaves ~160MB for Python/OS)
+    JAVA_MEM_ARGS = ["-Xmx350M", "-Xms128M"]
+else:
+    # Settings for Local Development (Standard/High Performance)
+    logging.info("💻 Detected Local Environment: Applying standard mode")
+    
+    MIN_MEMORY = 512 * 1024**2  # Standard check
+    MIN_DISK_SPACE = 1 * 1024**3  # 1GB Standard check
+    
+    MAX_WORKERS_DOWNLOAD = 16   # High concurrency
+    MAX_WORKERS_COPY = 8        # High concurrency
+    JAVA_MEM_ARGS = []          # No limit
+    
 # Custom logging handler that also pushes to web interface
 class WebLogHandler(logging.Handler):
     """Custom logging handler that pushes logs to web interface when request_id is available."""
@@ -2567,8 +2597,12 @@ def run_installer(java_path, installer_path, args, server_dir, request_id, queue
         is_neoforge = "neoforge" in installer_path.lower()
         timeout_seconds = NEOFORGE_TIMEOUT if is_neoforge else DEFAULT_INSTALLER_TIMEOUT
         
+        # Build the command with dynamic memory arguments
+        # Format: [java, memory_flags, -jar, installer, args...]
+        command = [java_path] + JAVA_MEM_ARGS + ["-jar", installer_path] + args
+        
         process = subprocess.Popen(
-            [java_path, "-jar", installer_path] + args,
+            command,
             cwd=server_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
