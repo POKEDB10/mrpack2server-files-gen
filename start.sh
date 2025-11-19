@@ -6,40 +6,50 @@ echo "🔧 Setting up Java symlinks..."
 # 1. Ensure /tmp/java exists
 mkdir -p /tmp/java
 
-# 2. Create symlinks to the Docker-installed Java versions
-# We use -f to force overwrite in case the container restarted but /tmp persisted
-ln -sf /usr/lib/jvm/java-8-openjdk-amd64 /tmp/java/java-8
-ln -sf /usr/lib/jvm/java-11-openjdk-amd64 /tmp/java/java-11
-ln -sf /usr/lib/jvm/java-17-openjdk-amd64 /tmp/java/java-17
-ln -sf /usr/lib/jvm/java-21-openjdk-amd64 /tmp/java/java-21
+# 2. Dynamic Java Discovery Function
+# This searches /usr/lib/jvm for a folder starting with the expected name
+link_java() {
+    local version=$1
+    local pattern="java-$version-openjdk*"
+    
+    # Find the directory (ignoring architecture suffix like -amd64 or -arm64)
+    local target=$(find /usr/lib/jvm -maxdepth 1 -name "$pattern" -type d | head -n 1)
+    
+    if [ -n "$target" ] && [ -d "$target" ]; then
+        echo "🔗 Found Java $version at: $target"
+        ln -sf "$target" "/tmp/java/java-$version"
+    else
+        echo "⚠️ Could not find installation directory for Java $version in /usr/lib/jvm"
+    fi
+}
 
-# 3. Verify installations (Critical Step)
+# 3. Create the links dynamically
+link_java 8
+link_java 11
+link_java 17
+link_java 21
+
+# 4. Verify installations (Critical Step)
 echo "🔍 Verifying Java Binaries..."
 has_error=0
 for ver in 8 11 17 21; do
     if [ -x "/tmp/java/java-$ver/bin/java" ]; then
-        echo "✅ Java $ver found."
+        echo "✅ Java $ver is working."
     else
-        echo "❌ Java $ver NOT found at /tmp/java/java-$ver/bin/java"
+        echo "❌ Java $ver NOT found or not executable."
         has_error=1
     fi
 done
 
-if [ $has_error -eq 1 ]; then
-    echo "⚠️ Some Java versions are missing. The server generator may fail for those versions."
-    # We don't exit here because maybe the user only needs Java 17, 
-    # but it's good to see in the logs.
-fi
-
-# 4. Calculate Workers
+# 5. Calculate Workers
 CPUS=$(nproc)
 WORKERS=$((2 * CPUS + 1))
 if [ "$WORKERS" -gt 10 ]; then WORKERS=10; fi
-if [ "$WORKERS" -lt 2 ]; then WORKERS=2; fi # Ensure at least 2 workers
+if [ "$WORKERS" -lt 2 ]; then WORKERS=2; fi 
 
 echo "🧠 Detected $CPUS cores, launching with $WORKERS workers."
 
-# 5. Primary Worker Check (Local container scope only)
+# 6. Primary Worker Check
 if (set -C; echo $$ > "/tmp/msfg_primary_worker.lock") 2>/dev/null; then
     export PRIMARY_WORKER=1
     echo "👑 This is the Primary Worker"
@@ -48,8 +58,7 @@ else
     echo "👷 This is a Secondary Worker"
 fi
 
-# 6. Start Gunicorn
-# Ensure the gevent worker is used for WebSockets
+# 7. Start Gunicorn
 exec gunicorn app:app \
     --bind 0.0.0.0:${PORT:-8090} \
     --workers "$WORKERS" \
