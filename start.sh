@@ -7,12 +7,13 @@ echo "🔧 Setting up Java symlinks..."
 mkdir -p /tmp/java
 
 # 2. Dynamic Java Discovery Function
-# This searches /usr/lib/jvm for a folder starting with the expected name
 link_java() {
     local version=$1
-    local pattern="java-$version-openjdk*"
+    # Search for directories containing the version number in /usr/lib/jvm
+    # This matches 'java-8-openjdk', 'temurin-8-jdk', 'temurin-16-jdk', etc.
+    local pattern="*-$version-*"
     
-    # Find the directory (ignoring architecture suffix like -amd64 or -arm64)
+    # Find the directory
     local target=$(find /usr/lib/jvm -maxdepth 1 -name "$pattern" -type d | head -n 1)
     
     if [ -n "$target" ] && [ -d "$target" ]; then
@@ -26,13 +27,14 @@ link_java() {
 # 3. Create the links dynamically
 link_java 8
 link_java 11
+link_java 16
 link_java 17
 link_java 21
 
 # 4. Verify installations (Critical Step)
 echo "🔍 Verifying Java Binaries..."
 has_error=0
-for ver in 8 11 17 21; do
+for ver in 8 11 16 17 21; do
     if [ -x "/tmp/java/java-$ver/bin/java" ]; then
         echo "✅ Java $ver is working."
     else
