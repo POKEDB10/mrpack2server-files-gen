@@ -412,7 +412,7 @@ def resolve_java_version(loader_type, mc_version):
     loader_type = loader_type.lower()
 
     # DEBUG: Check what's actually in /tmp/java
-    for v in ["8", "11", "17", "21"]:
+    for v in ["8", "11", "16", "17", "21"]:  # <--- ADDED 16 HERE
         debug_java_paths(v)
     
     # Step 1: Try exact match in hardcoded map (fastest, most reliable)
@@ -489,17 +489,17 @@ def resolve_java_version(loader_type, mc_version):
         try:
             contents = os.listdir(JAVA_BASE_PATH)
             if contents:
-                error_msg += f"\n   Found in {JAVA_BASE_PATH}: {', '.join(contents)}"
+                error_msg += f"\n   Found in {JAVA_BASE_PATH}: {', '.join(contents)}"
             else:
-                error_msg += f"\n   {JAVA_BASE_PATH} exists but is empty"
+                error_msg += f"\n   {JAVA_BASE_PATH} exists but is empty"
         except Exception as e:
-            error_msg += f"\n   Could not list {JAVA_BASE_PATH}: {e}"
+            error_msg += f"\n   Could not list {JAVA_BASE_PATH}: {e}"
     else:
-        error_msg += f"\n   {JAVA_BASE_PATH} does not exist (Java may not have been installed during build)"
+        error_msg += f"\n   {JAVA_BASE_PATH} does not exist (Java may not have been installed during build)"
     
     # Also provide info about RENDER_DISK_PATH if it exists
     render_java_path = os.path.join(RENDER_DISK_PATH, "java")
     if render_java_path != JAVA_BASE_PATH and os.path.exists(RENDER_DISK_PATH):
-        error_msg += f"\n   RENDER_DISK_PATH: {RENDER_DISK_PATH} (exists: True, writable: {os.access(RENDER_DISK_PATH, os.W_OK)})"
+        error_msg += f"\n   RENDER_DISK_PATH: {RENDER_DISK_PATH} (exists: True, writable: {os.access(RENDER_DISK_PATH, os.W_OK)})"
     
     raise RuntimeError(error_msg)
